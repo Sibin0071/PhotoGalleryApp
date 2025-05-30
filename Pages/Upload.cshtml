@@ -1,0 +1,19 @@
+﻿@page
+@model UploadModel
+@{
+    ViewData["Title"] = "Upload";
+}
+
+<h2 class="mb-3">Upload Media</h2>
+
+<form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <input type="file" name="files" multiple class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-info mt-3">@Model.StatusMessage</div>
+}
