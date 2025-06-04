@@ -8,8 +8,17 @@
     <h1 class="display-4">📸 Welcome to Photo & Video Gallery</h1>
     <p class="lead">Upload and view your favorite memories</p>
 
-    <div class="mt-4">
+    <div class="mt-4 d-inline-block">
         <a class="btn btn-primary btn-lg me-3" href="/Upload">Upload Media</a>
-        <a class="btn btn-outline-secondary btn-lg" href="/Gallery">View Gallery</a>
+
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-lg dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                View Gallery
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/GalleryImage">Image Gallery</a></li>
+                <li><a class="dropdown-item" href="/GalleryVideo">Video Gallery</a></li>
+            </ul>
+        </div>
     </div>
 </div>

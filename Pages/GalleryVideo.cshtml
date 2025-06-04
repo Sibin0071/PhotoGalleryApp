@@ -1,0 +1,116 @@
+﻿@page "{pageNumber:int?}"
+@model PhotoGalleryApp.Pages.GalleryVideoModel
+@{
+    ViewData["Title"] = "Video Gallery";
+    string[] videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
+}
+
+<h2 class="mb-4">Video Gallery</h2>
+
+<div class="row">
+    @for (int i = 0; i < Model.VideoFiles.Count; i++)
+    {
+        var file = Model.VideoFiles[i];
+        var fileName = file.FileName;
+        var fileUrl = file.Url;
+        var extension = System.IO.Path.GetExtension(fileName).ToLower();
+
+        if (videoExtensions.Contains(extension))
+        {
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                <div class="card shadow-sm">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#videoModal"
+                       data-index="@i"
+                       data-video-url="@fileUrl"
+                       data-file-name="@fileName">
+                        <video class="card-img-top img-thumbnail img-fluid" muted>
+                            <source src="@fileUrl" type="video/@extension.TrimStart('.')">
+                        </video>
+                    </a>
+                    <div class="card-body text-center p-2">
+                        <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-primary me-1">Download</button>
+                        </form>
+                        <form method="post" asp-page-handler="Delete" asp-route-filename="@fileName" class="d-inline"
+                              onsubmit="return confirm('Are you sure you want to delete this video?');">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Pagination Controls -->
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Video gallery pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber - 1)">Previous</a>
+            </li>
+
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@i">@i</a>
+                </li>
+            }
+
+            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- Video Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-body p-0 text-center">
+                <video id="modalVideo" class="img-fluid rounded w-100" controls autoplay>
+                    <source src="" type="video/mp4" id="modalVideoSource">
+                </video>
+                <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y" id="prevVideoBtn">&#9664;</button>
+                <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y" id="nextVideoBtn">&#9654;</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const videoModal = document.getElementById('videoModal');
+        const modalVideo = document.getElementById('modalVideo');
+        const modalVideoSource = document.getElementById('modalVideoSource');
+        const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
+        let currentIndex = 0;
+
+        videoThumbnails.forEach((video, index) => {
+            video.addEventListener('click', function () {
+                const videoUrl = this.getAttribute('data-video-url');
+                modalVideoSource.src = videoUrl;
+                modalVideo.load();
+                currentIndex = parseInt(this.getAttribute('data-index'));
+            });
+        });
+
+        document.getElementById('prevVideoBtn').addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
+                modalVideo.load();
+            }
+        });
+
+        document.getElementById('nextVideoBtn').addEventListener('click', () => {
+            if (currentIndex < videoThumbnails.length - 1) {
+                currentIndex++;
+                modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
+                modalVideo.load();
+            }
+        });
+    </script>
+}

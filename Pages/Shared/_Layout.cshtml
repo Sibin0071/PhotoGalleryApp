@@ -25,9 +25,16 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/Upload">Upload</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Gallery">Gallery</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" id="galleryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Gallery
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="galleryDropdown">
+                                <li><a class="dropdown-item" asp-area="" asp-page="/GalleryImage">Image Gallery</a></li>
+                                <li><a class="dropdown-item" asp-area="" asp-page="/GalleryVideo">Video Gallery</a></li>
+                            </ul>
                         </li>
+
                     </ul>
 
                 </div>

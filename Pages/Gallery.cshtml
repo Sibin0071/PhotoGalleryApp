@@ -1,9 +1,12 @@
-﻿@page
+﻿@page 
 @model GalleryModel
 @{
     ViewData["Title"] = "Gallery";
     string[] imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
     string[] videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
+    int totalPages = Model.TotalPages;
+    int currentPage = Model.PageNumber;
+
 }
 
 <h2 class="mb-4">Gallery</h2>
@@ -44,6 +47,32 @@
         </div>
     }
 </div>
+
+<!-- Pagination Controls -->
+<nav aria-label="Gallery pagination">
+    <ul class="pagination justify-content-center">
+        @if (currentPage > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@(currentPage - 1)">Previous</a>
+            </li>
+        }
+
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <li class="page-item @(i == currentPage ? "active" : "")">
+                <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@i">@i</a>
+            </li>
+        }
+
+        @if (currentPage < totalPages)
+        {
+            <li class="page-item">
+                <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@(currentPage + 1)">Next</a>
+            </li>
+        }
+    </ul>
+</nav>
 
 <!-- Image Modal -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
