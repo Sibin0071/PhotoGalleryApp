@@ -137,6 +137,13 @@
                 modalVideo.pause();
                 modalVideo.currentTime = 0;
             });
+
+            document.querySelector('[aria-label="Close"]').addEventListener('click', () => {
+                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('videoModal'));
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            });
         });
     </script>
 }
