@@ -70,6 +70,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-dark text-white">
             <div class="modal-body p-0 text-center position-relative">
+
                 <!-- Close Button -->
                 <button type="button"
                         class="btn btn-light position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
@@ -93,45 +94,53 @@
 
 @section Scripts {
     <script>
-        const videoModal = document.getElementById('videoModal');
-        const modalVideo = document.getElementById('modalVideo');
-        const modalVideoSource = document.getElementById('modalVideoSource');
-        const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
-        let currentIndex = 0;
+        document.addEventListener('DOMContentLoaded', function () {
+            const videoModal = document.getElementById('videoModal');
+            const modalVideo = document.getElementById('modalVideo');
+            const modalVideoSource = document.getElementById('modalVideoSource');
+            const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
+            let currentIndex = 0;
 
-        videoThumbnails.forEach((video, index) => {
-            video.addEventListener('click', function () {
-                const videoUrl = this.getAttribute('data-video-url');
-                modalVideoSource.src = videoUrl;
-                modalVideo.load();
-                currentIndex = parseInt(this.getAttribute('data-index'));
+            const videoModalInstance = new bootstrap.Modal(videoModal);
+
+            function closeVideoModal() {
+                videoModalInstance.hide();
+            }
+
+            videoThumbnails.forEach((video, index) => {
+                video.addEventListener('click', function () {
+                    const videoUrl = this.getAttribute('data-video-url');
+                    modalVideoSource.src = videoUrl;
+                    modalVideo.load();
+                    currentIndex = parseInt(this.getAttribute('data-index'));
+                    videoModalInstance.show();
+                });
             });
-        });
 
-        document.getElementById('prevVideoBtn').addEventListener('click', () => {
-            if (currentIndex > 0) {
-                currentIndex--;
-                modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
-                modalVideo.load();
-            }
-        });
+            document.getElementById('prevVideoBtn').addEventListener('click', () => {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
+                    modalVideo.load();
+                }
+            });
 
-        document.getElementById('nextVideoBtn').addEventListener('click', () => {
-            if (currentIndex < videoThumbnails.length - 1) {
-                currentIndex++;
-                modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
-                modalVideo.load();
-            }
-        });       
+            document.getElementById('nextVideoBtn').addEventListener('click', () => {
+                if (currentIndex < videoThumbnails.length - 1) {
+                    currentIndex++;
+                    modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
+                    modalVideo.load();
+                }
+            });
 
-        function closeVideoModal() {
-            const modal = bootstrap.Modal.getInstance(videoModal);
-            modal.hide();
-        }
+            videoModal.addEventListener('hidden.bs.modal', function () {
+                modalVideo.pause();
+                modalVideo.currentTime = 0;
+            });
 
-        videoModal.addEventListener('hidden.bs.modal', function () {
-            modalVideo.pause();
-            modalVideo.currentTime = 0;
+            // Attach close function globally if needed
+            window.closeVideoModal = closeVideoModal;
         });
     </script>
 }
+
