@@ -133,10 +133,6 @@
                 }
             });
 
-            videoModal.addEventListener('hidden.bs.modal', function () {
-                modalVideo.pause();
-                modalVideo.currentTime = 0;
-            });
 
             // Attach close function globally if needed
             window.closeVideoModal = closeVideoModal;
