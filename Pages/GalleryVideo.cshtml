@@ -94,51 +94,55 @@
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const videoModal = document.getElementById('videoModal');
-            const modalVideo = document.getElementById('modalVideo');
-            const modalVideoSource = document.getElementById('modalVideoSource');
-            const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
-            const closeBtn = document.getElementById('closeVideoModalBtn');
-            let currentIndex = 0;
+            setTimeout(function () {
+                const videoModal = document.getElementById('videoModal');
+                const modalVideo = document.getElementById('modalVideo');
+                const modalVideoSource = document.getElementById('modalVideoSource');
+                const closeBtn = document.getElementById('closeVideoModalBtn');
+                const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
+                let currentIndex = 0;
 
-            const videoModalInstance = new bootstrap.Modal(videoModal);
+                const videoModalInstance = new bootstrap.Modal(videoModal);
 
-            videoThumbnails.forEach((video, index) => {
-                video.addEventListener('click', function () {
-                    const videoUrl = this.getAttribute('data-video-url');
-                    modalVideoSource.src = videoUrl;
-                    modalVideo.load();
-                    currentIndex = parseInt(this.getAttribute('data-index'));
-                    videoModalInstance.show();
+                videoThumbnails.forEach((video, index) => {
+                    video.addEventListener('click', function () {
+                        const videoUrl = this.getAttribute('data-video-url');
+                        modalVideoSource.src = videoUrl;
+                        modalVideo.load();
+                        currentIndex = parseInt(this.getAttribute('data-index'));
+                        videoModalInstance.show();
+                    });
                 });
-            });
 
-            document.getElementById('prevVideoBtn').addEventListener('click', () => {
-                if (currentIndex > 0) {
-                    currentIndex--;
-                    modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
-                    modalVideo.load();
+                document.getElementById('prevVideoBtn').addEventListener('click', () => {
+                    if (currentIndex > 0) {
+                        currentIndex--;
+                        modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
+                        modalVideo.load();
+                    }
+                });
+
+                document.getElementById('nextVideoBtn').addEventListener('click', () => {
+                    if (currentIndex < videoThumbnails.length - 1) {
+                        currentIndex++;
+                        modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
+                        modalVideo.load();
+                    }
+                });
+
+                // ✅ NOW THIS WILL WORK
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function () {
+                        console.log("✖ Close button clicked");
+                        videoModalInstance.hide();
+                    });
                 }
-            });
 
-            document.getElementById('nextVideoBtn').addEventListener('click', () => {
-                if (currentIndex < videoThumbnails.length - 1) {
-                    currentIndex++;
-                    modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
-                    modalVideo.load();
-                }
-            });
-
-            // ✅ Close button click manually hides the modal
-            closeBtn.addEventListener('click', function () {
-                videoModalInstance.hide();
-            });
-
-            // ✅ Reset video on modal close
-            videoModal.addEventListener('hidden.bs.modal', function () {
-                modalVideo.pause();
-                modalVideo.currentTime = 0;
-            });
+                videoModal.addEventListener('hidden.bs.modal', function () {
+                    modalVideo.pause();
+                    modalVideo.currentTime = 0;
+                });
+            }, 100); // Wait 100ms for DOM to settle
         });
     </script>
 }
