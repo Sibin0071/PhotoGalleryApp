@@ -73,7 +73,7 @@
                 <!-- Close Button -->
                 <button type="button"
                         class="btn btn-light position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
-                        data-bs-dismiss="modal"
+                        onclick="closeVideoModal()"
                         aria-label="Close">
                     ×
                 </button>
@@ -122,7 +122,12 @@
                 modalVideoSource.src = videoThumbnails[currentIndex].getAttribute('data-video-url');
                 modalVideo.load();
             }
-        });
+        });       
+
+        function closeVideoModal() {
+            const modal = bootstrap.Modal.getInstance(videoModal);
+            modal.hide();
+        }
 
         videoModal.addEventListener('hidden.bs.modal', function () {
             modalVideo.pause();
