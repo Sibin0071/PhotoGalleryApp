@@ -56,15 +56,6 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script>
-        const imageModal = document.getElementById('imageModal');
-        imageModal.addEventListener('show.bs.modal', function (event) {
-            const trigger = event.relatedTarget;
-            const imgUrl = trigger.getAttribute('data-img-url');
-            const modalImage = imageModal.querySelector('#modalImage');
-            modalImage.src = imgUrl;
-        });
-    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
