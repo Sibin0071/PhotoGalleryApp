@@ -74,9 +74,9 @@
                 <!-- Close Button -->
                 <button type="button"
                         class="btn btn-light position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
-                        onclick="closeVideoModal()"
+                        data-bs-dismiss="modal"
                         aria-label="Close">
-                    ×
+                    &times;
                 </button>
 
                 <!-- Video Content -->
@@ -133,10 +133,10 @@
                 }
             });
 
-
-            // Attach close function globally if needed
-            window.closeVideoModal = closeVideoModal;
-        });
+            videoModal.addEventListener('hidden.bs.modal', function () {
+                modalVideo.pause();
+                modalVideo.currentTime = 0;
+            });
     </script>
 }
 
