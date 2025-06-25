@@ -123,5 +123,10 @@
                 modalVideo.load();
             }
         });
+
+        videoModal.addEventListener('hidden.bs.modal', function () {
+            modalVideo.pause();
+            modalVideo.currentTime = 0;
+        });
     </script>
 }
