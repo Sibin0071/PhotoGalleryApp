@@ -61,7 +61,7 @@
 
                 // Upload via XHR
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', window.location.href, true);
+                xhr.open('POST', window.location.pathname + '?handler=AjaxUpload', true);
 
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
