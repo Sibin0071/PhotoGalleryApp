@@ -41,7 +41,6 @@
     }
 </div>
 
-<!-- Pagination Controls -->
 @if (Model.TotalPages > 1)
 {
     <nav aria-label="Video gallery pagination">
@@ -70,24 +69,28 @@
         <div class="modal-content bg-dark text-white">
             <div class="modal-body p-0 text-center position-relative">
 
+                <!-- ❌ Close -->
                 <span id="customCloseIcon"
-      class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4 text-white"
-      role="button"
-      style="cursor: pointer; z-index: 1056;">×</span>
+                      class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4 text-white bg-light rounded"
+                      role="button"
+                      style="cursor: pointer; z-index: 1056;"
+                      data-bs-dismiss="modal"
+                      aria-label="Close">×</span>
 
-                <!-- 🎥 Video Content -->
+                <!-- 🎥 Video -->
                 <video id="modalVideo" class="img-fluid rounded w-100" controls autoplay>
                     <source src="" type="video/mp4" id="modalVideoSource">
                 </video>
 
-                <!-- ⬅ ➡ Navigation Buttons -->
-                <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y" id="prevVideoBtn">&#9664;</button>
-                <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y" id="nextVideoBtn">&#9654;</button>
+                <!-- ⬅ ➡ Navigation -->
+                <span id="prevVideoBtn" class="position-absolute top-50 start-0 translate-middle-y fs-3 text-dark bg-light px-2 rounded" role="button">&#9664;</span>
+                <span id="nextVideoBtn" class="position-absolute top-50 end-0 translate-middle-y fs-3 text-dark bg-light px-2 rounded" role="button">&#9654;</span>
+
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <!-- Script logic moved to site.js -->
+    <!-- Script logic handled in site.js -->
 }

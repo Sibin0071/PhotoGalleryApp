@@ -36,7 +36,6 @@
     }
 </div>
 
-<!-- Pagination Controls -->
 @if (Model.TotalPages > 1)
 {
     <nav aria-label="Image gallery pagination">
@@ -44,14 +43,12 @@
             <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
                 <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber - 1)">Previous</a>
             </li>
-
             @for (int i = 1; i <= Model.TotalPages; i++)
             {
                 <li class="page-item @(i == Model.PageNumber ? "active" : "")">
                     <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@i">@i</a>
                 </li>
             }
-
             <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
                 <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber + 1)">Next</a>
             </li>
@@ -64,17 +61,18 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-dark">
             <div class="modal-body p-0 text-center position-relative">
-                <!-- Close Button -->
-                <button type="button"
-                        class="btn btn-light position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
-                        data-bs-dismiss="modal"
-                        aria-label="Close">
+                <!-- Close Icon -->
+                <span class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4 text-white bg-light rounded"
+                      data-bs-dismiss="modal"
+                      aria-label="Close" role="button">
                     ×
-                </button>
+                </span>
 
-                <!-- Navigation Buttons -->
-                <button type="button" class="btn btn-light position-absolute start-0 top-50 translate-middle-y" id="prevImageBtn">⟨</button>
-                <button type="button" class="btn btn-light position-absolute end-0 top-50 translate-middle-y" id="nextImageBtn">⟩</button>
+                <!-- Navigation Arrows -->
+                <span id="prevImageBtn" class="position-absolute start-0 top-50 translate-middle-y fs-3 text-dark bg-light px-2 rounded"
+                      role="button">⟨</span>
+                <span id="nextImageBtn" class="position-absolute end-0 top-50 translate-middle-y fs-3 text-dark bg-light px-2 rounded"
+                      role="button">⟩</span>
 
                 <!-- Image -->
                 <img src="" id="modalImage" class="img-fluid rounded" />
@@ -84,5 +82,5 @@
 </div>
 
 @section Scripts {
-    <!-- All logic now handled in site.js -->
+    <!-- All modal and navigation logic handled in site.js -->
 }
