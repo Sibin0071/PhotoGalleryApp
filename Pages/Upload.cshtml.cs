@@ -23,15 +23,15 @@ namespace PhotoGalleryApp.Pages
 
         [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = 5368709120)] // 5 GB
-        public async Task<IActionResult> OnPostAsync(List<IFormFile> files)
+        public async Task<IActionResult> OnPostAjaxUploadAsync(List<IFormFile> files)
         {
             if (files == null || !files.Any())
             {
-                StatusMessage = "No file selected.";
-                return Page();
+                return new JsonResult(new { success = false, message = "No file selected." });
             }
 
-            var allowedTypes = new[] {
+            var allowedTypes = new[]
+            {
                 "image/jpeg", "image/png", "image/gif", "image/webp",
                 "video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm"
             };
@@ -47,14 +47,12 @@ namespace PhotoGalleryApp.Pages
             {
                 if (file.Length > _maxFileSizeBytes)
                 {
-                    StatusMessage = $"File '{file.FileName}' exceeds 5 GB limit.";
-                    return Page();
+                    return new JsonResult(new { success = false, message = $"File '{file.FileName}' exceeds 5 GB limit." });
                 }
 
                 if (!allowedTypes.Contains(file.ContentType.ToLower()))
                 {
-                    StatusMessage = $"File '{file.FileName}' is not a supported image or video format.";
-                    return Page();
+                    return new JsonResult(new { success = false, message = $"File '{file.FileName}' is not a supported image or video format." });
                 }
 
                 var blobClient = containerClient.GetBlobClient(file.FileName);
@@ -65,8 +63,7 @@ namespace PhotoGalleryApp.Pages
                 }
             }
 
-            StatusMessage = "Upload successful!";
-            return Page();
+            return new JsonResult(new { success = true, message = "Upload successful!" });
         }
     }
 }

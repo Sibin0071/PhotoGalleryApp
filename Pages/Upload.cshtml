@@ -6,14 +6,79 @@
 
 <h2 class="mb-3">Upload Media</h2>
 
-<form method="post" enctype="multipart/form-data">
+<form id="uploadForm" enctype="multipart/form-data">
     <div class="mb-3">
-        <input type="file" name="files" multiple class="form-control" />
+        <input type="file" id="fileInput" name="files" multiple class="form-control" />
     </div>
     <button type="submit" class="btn btn-primary">Upload</button>
 </form>
 
-@if (!string.IsNullOrEmpty(Model.StatusMessage))
-{
-    <div class="alert alert-info mt-3">@Model.StatusMessage</div>
+<!-- Progress Bar -->
+<div class="progress mt-3" style="height: 25px; display: none;" id="uploadProgressContainer">
+    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+         role="progressbar" style="width: 0%">
+        0%
+    </div>
+</div>
+
+<!-- Upload Status -->
+<div id="uploadStatus" class="mt-3"></div>
+
+@section Scripts {
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const form = e.target;
+            const files = document.getElementById('fileInput').files;
+            if (!files.length) {
+                alert("Please select at least one file.");
+                return;
+            }
+
+            const progressContainer = document.getElementById('uploadProgressContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const statusDiv = document.getElementById('uploadStatus');
+
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            statusDiv.innerHTML = '';
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', window.location.href, true);
+
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                }
+            };
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    progressBar.classList.remove('bg-danger');
+                    progressBar.classList.add('bg-success');
+                    statusDiv.innerHTML = `<div class="alert alert-success mt-2">Upload successful!</div>`;
+                } else {
+                    progressBar.classList.remove('bg-success');
+                    progressBar.classList.add('bg-danger');
+                    statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload failed.</div>`;
+                }
+            };
+
+            xhr.onerror = function () {
+                progressBar.classList.add('bg-danger');
+                statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload error occurred.</div>`;
+            };
+
+            xhr.send(formData);
+        });
+    </script>
 }
