@@ -5,6 +5,7 @@
     const imageLinks = Array.from(document.querySelectorAll('[data-img-url]'));
     const prevImageBtn = document.getElementById('prevImageBtn');
     const nextImageBtn = document.getElementById('nextImageBtn');
+    const imageCloseIcon = document.getElementById('customImageCloseIcon');
     let currentImageIndex = -1;
 
     if (imageLinks.length && modalImage && prevImageBtn && nextImageBtn) {
@@ -28,6 +29,13 @@
                 modalImage.src = imageLinks[currentImageIndex].getAttribute('data-img-url');
             }
         });
+
+        if (imageCloseIcon) {
+            imageCloseIcon.addEventListener('click', () => {
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(imageModal);
+                modalInstance.hide();
+            });
+        }
     }
 
     // 🔷 VIDEO MODAL LOGIC

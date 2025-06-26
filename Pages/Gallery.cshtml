@@ -1,4 +1,4 @@
-﻿@page 
+﻿@page
 @model GalleryModel
 @{
     ViewData["Title"] = "Gallery";
@@ -6,7 +6,6 @@
     string[] videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
     int totalPages = Model.TotalPages;
     int currentPage = Model.PageNumber;
-
 }
 
 <h2 class="mb-4">Gallery</h2>
@@ -23,12 +22,12 @@
                 @if (imageExtensions.Contains(extension))
                 {
                     <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="@fileUrl">
-                        <img src="@fileUrl" class="card-img-top img-thumbnail img-fluid" />
+                        <img src="@fileUrl" alt="Image" loading="lazy" class="card-img-top img-thumbnail img-fluid" />
                     </a>
                 }
                 else if (videoExtensions.Contains(extension))
                 {
-                    <video controls class="card-img-top img-thumbnail img-fluid">
+                    <video controls loading="lazy" class="card-img-top img-thumbnail img-fluid">
                         <source src="@fileUrl" type="video/@extension.TrimStart('.')">
                         Your browser does not support the video tag.
                     </video>
@@ -49,36 +48,39 @@
 </div>
 
 <!-- Pagination Controls -->
-<nav aria-label="Gallery pagination">
-    <ul class="pagination justify-content-center">
-        @if (currentPage > 1)
-        {
-            <li class="page-item">
+@if (totalPages > 1)
+{
+    <nav aria-label="Gallery pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
                 <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@(currentPage - 1)">Previous</a>
             </li>
-        }
 
-        @for (int i = 1; i <= totalPages; i++)
-        {
-            <li class="page-item @(i == currentPage ? "active" : "")">
-                <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@i">@i</a>
-            </li>
-        }
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@i">@i</a>
+                </li>
+            }
 
-        @if (currentPage < totalPages)
-        {
-            <li class="page-item">
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
                 <a class="page-link" asp-page="/Gallery" asp-route-pageNumber="@(currentPage + 1)">Next</a>
             </li>
-        }
-    </ul>
-</nav>
+        </ul>
+    </nav>
+}
 
 <!-- Image Modal -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content bg-dark">
-            <div class="modal-body p-0 text-center">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-body p-0 text-center position-relative">
+                <span id="galleryCloseIcon"
+                      class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4 text-white"
+                      data-bs-dismiss="modal"
+                      role="button"
+                      style="cursor: pointer; z-index: 1056;">×</span>
+
                 <img src="" id="modalImage" class="img-fluid rounded" />
             </div>
         </div>
@@ -86,12 +88,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.querySelectorAll('[data-img-url]').forEach(img => {
-            img.addEventListener('click', function () {
-                const modalImage = document.getElementById('modalImage');
-                modalImage.src = this.getAttribute('data-img-url');
-            });
-        });
-    </script>
+    <!-- All logic handled in site.js -->
 }
