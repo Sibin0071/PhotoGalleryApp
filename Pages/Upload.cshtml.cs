@@ -1,31 +1,24 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Azure.Storage.Blobs;
-using Microsoft.Extensions.Configuration;
 
 namespace PhotoGalleryApp.Pages
 {
     public class UploadModel : PageModel
     {
         private readonly IConfiguration _configuration;
-        private readonly long _maxFileSizeBytes = 5L * 1024 * 1024 * 1024; // 5 GB
-
-        public string StatusMessage { get; set; } = string.Empty;
+        private const long MaxFileSizeBytes = 5L * 1024 * 1024 * 1024; // 5 GB
 
         public UploadModel(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        public void OnGet()
-        {
-        }
-
         [DisableRequestSizeLimit]
-        [RequestFormLimits(MultipartBodyLengthLimit = 5368709120)] // 5 GB
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSizeBytes)]
         public async Task<IActionResult> OnPostAjaxUploadAsync(List<IFormFile> files)
         {
-            if (files == null || !files.Any())
+            if (files == null || files.Count == 0)
             {
                 return new JsonResult(new { success = false, message = "No file selected." });
             }
@@ -37,30 +30,34 @@ namespace PhotoGalleryApp.Pages
             };
 
             var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
-            var containerName = "media";
+            var containerClient = new BlobServiceClient(connectionString)
+                                  .GetBlobContainerClient("media");
 
-            var blobServiceClient = new BlobServiceClient(connectionString);
-            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             await containerClient.CreateIfNotExistsAsync();
 
             foreach (var file in files)
             {
-                if (file.Length > _maxFileSizeBytes)
+                if (file.Length > MaxFileSizeBytes)
                 {
-                    return new JsonResult(new { success = false, message = $"File '{file.FileName}' exceeds 5 GB limit." });
+                    return new JsonResult(new
+                    {
+                        success = false,
+                        message = $"File '{file.FileName}' exceeds the 5 GB limit."
+                    });
                 }
 
                 if (!allowedTypes.Contains(file.ContentType.ToLower()))
                 {
-                    return new JsonResult(new { success = false, message = $"File '{file.FileName}' is not a supported image or video format." });
+                    return new JsonResult(new
+                    {
+                        success = false,
+                        message = $"File '{file.FileName}' is not a supported format."
+                    });
                 }
 
                 var blobClient = containerClient.GetBlobClient(file.FileName);
-
-                using (var stream = file.OpenReadStream())
-                {
-                    await blobClient.UploadAsync(stream, overwrite: true);
-                }
+                await using var stream = file.OpenReadStream();
+                await blobClient.UploadAsync(stream, overwrite: true);
             }
 
             return new JsonResult(new { success = true, message = "Upload successful!" });

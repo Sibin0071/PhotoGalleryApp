@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PhotoGalleryApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+000852bfdec9dd75f50444c0b44741c0a3959191")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4d0320facf7d7168462d47df0e51c878290f4fc2")]
 [assembly: System.Reflection.AssemblyProductAttribute("PhotoGalleryApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PhotoGalleryApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

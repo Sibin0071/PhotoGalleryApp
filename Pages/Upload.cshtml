@@ -14,71 +14,80 @@
 </form>
 
 <!-- Progress Bar -->
-<div class="progress mt-3" style="height: 25px; display: none;" id="uploadProgressContainer">
-    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-         role="progressbar" style="width: 0%">
+<div id="uploadProgressContainer" class="progress mt-3" style="height: 25px; display: none;">
+    <div id="uploadProgressBar"
+         class="progress-bar progress-bar-striped progress-bar-animated"
+         role="progressbar"
+         style="width: 0%;">
         0%
     </div>
 </div>
 
-<!-- Upload Status -->
+<!-- Upload Status Message -->
 <div id="uploadStatus" class="mt-3"></div>
 
 @section Scripts {
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const form = e.target;
-            const files = document.getElementById('fileInput').files;
-            if (!files.length) {
-                alert("Please select at least one file.");
-                return;
-            }
-
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadForm = document.getElementById('uploadForm');
+            const fileInput = document.getElementById('fileInput');
             const progressContainer = document.getElementById('uploadProgressContainer');
             const progressBar = document.getElementById('uploadProgressBar');
             const statusDiv = document.getElementById('uploadStatus');
 
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressBar.textContent = '0%';
-            statusDiv.innerHTML = '';
+            if (!uploadForm || !fileInput || !progressContainer || !progressBar || !statusDiv) return;
 
-            const formData = new FormData();
-            for (let i = 0; i < files.length; i++) {
-                formData.append('files', files[i]);
-            }
+            uploadForm.addEventListener('submit', (e) => {
+                e.preventDefault();
 
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', window.location.href, true);
-
-            xhr.upload.onprogress = function (e) {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressBar.textContent = percent + '%';
+                const files = fileInput.files;
+                if (!files.length) {
+                    alert("Please select at least one file.");
+                    return;
                 }
-            };
 
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    progressBar.classList.remove('bg-danger');
-                    progressBar.classList.add('bg-success');
-                    statusDiv.innerHTML = `<div class="alert alert-success mt-2">Upload successful!</div>`;
-                } else {
-                    progressBar.classList.remove('bg-success');
+                // Reset UI
+                progressContainer.style.display = 'block';
+                progressBar.classList.remove('bg-danger', 'bg-success');
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+                statusDiv.innerHTML = '';
+
+                // Prepare FormData
+                const formData = new FormData();
+                for (let file of files) {
+                    formData.append('files', file);
+                }
+
+                // Upload via XHR
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', window.location.href, true);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressBar.textContent = percent + '%';
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        progressBar.classList.add('bg-success');
+                        statusDiv.innerHTML = `<div class="alert alert-success mt-2">Upload successful!</div>`;
+                    } else {
+                        progressBar.classList.add('bg-danger');
+                        statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload failed with status ${xhr.status}.</div>`;
+                    }
+                };
+
+                xhr.onerror = () => {
                     progressBar.classList.add('bg-danger');
-                    statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload failed.</div>`;
-                }
-            };
+                    statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload error occurred.</div>`;
+                };
 
-            xhr.onerror = function () {
-                progressBar.classList.add('bg-danger');
-                statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload error occurred.</div>`;
-            };
-
-            xhr.send(formData);
+                xhr.send(formData);
+            });
         });
     </script>
 }
