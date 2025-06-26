@@ -65,7 +65,6 @@
         <div class="modal-content bg-dark">
             <div class="modal-body p-0 text-center position-relative">
                 <!-- Close Button -->
-                <!-- Close Button using visible "×" text -->
                 <button type="button"
                         class="btn btn-light position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
                         data-bs-dismiss="modal"
@@ -80,42 +79,10 @@
                 <!-- Image -->
                 <img src="" id="modalImage" class="img-fluid rounded" />
             </div>
-
         </div>
     </div>
 </div>
 
-
 @section Scripts {
-    <script>
-        const modalImage = document.getElementById('modalImage');
-        const imageLinks = Array.from(document.querySelectorAll('[data-img-url]'));
-        let currentIndex = -1;
-
-        // Open modal and track current image index
-        imageLinks.forEach((img, index) => {
-            img.addEventListener('click', function () {
-                modalImage.src = this.getAttribute('data-img-url');
-                currentIndex = index;
-            });
-        });
-
-        // Show previous image
-        document.getElementById('prevImageBtn').addEventListener('click', () => {
-            if (currentIndex > 0) {
-                currentIndex--;
-                modalImage.src = imageLinks[currentIndex].getAttribute('data-img-url');
-            }
-        });
-
-        // Show next image
-        document.getElementById('nextImageBtn').addEventListener('click', () => {
-            if (currentIndex < imageLinks.length - 1) {
-                currentIndex++;
-                modalImage.src = imageLinks[currentIndex].getAttribute('data-img-url');
-            }
-        });
-    </script>
+    <!-- All logic now handled in site.js -->
 }
-
-
