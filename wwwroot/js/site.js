@@ -36,17 +36,20 @@
     const modalVideoSource = document.getElementById('modalVideoSource');
     const prevVideoBtn = document.getElementById('prevVideoBtn');
     const nextVideoBtn = document.getElementById('nextVideoBtn');
-    const closeVideoBtn = document.getElementById('customCloseVideoBtn'); // updated id
+    const customCloseIcon = document.getElementById('customCloseIcon');
     const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
     let currentVideoIndex = 0;
 
     if (videoModal && modalVideo && modalVideoSource) {
+        const videoModalInstance = bootstrap.Modal.getOrCreateInstance(videoModal);
+
         videoThumbnails.forEach((thumb, index) => {
             thumb.addEventListener('click', function () {
                 const videoUrl = this.getAttribute('data-video-url');
                 modalVideoSource.src = videoUrl;
                 modalVideo.load();
                 currentVideoIndex = index;
+                videoModalInstance.show();
             });
         });
 
@@ -72,27 +75,12 @@
             });
         }
 
-        // ✅ Manual modal close handler
-        if (closeVideoBtn) {
-            closeVideoBtn.addEventListener('click', () => {
-                // Pause video and reset
-                modalVideo.pause();
-                modalVideo.currentTime = 0;
-                modalVideoSource.src = '';
-
-                // Force hide modal
-                videoModal.classList.remove('show');
-                videoModal.style.display = 'none';
-                videoModal.setAttribute('aria-hidden', 'true');
-                videoModal.removeAttribute('aria-modal');
-                document.body.classList.remove('modal-open');
-                document.body.style = '';
-                const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) backdrop.remove();
+        if (customCloseIcon) {
+            customCloseIcon.addEventListener('click', () => {
+                videoModalInstance.hide();
             });
         }
 
-        // Also reset on modal close (for any other method)
         videoModal.addEventListener('hidden.bs.modal', function () {
             modalVideo.pause();
             modalVideo.currentTime = 0;
