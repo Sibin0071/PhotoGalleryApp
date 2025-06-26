@@ -61,18 +61,18 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-dark">
             <div class="modal-body p-0 text-center position-relative">
+
                 <!-- Close Icon -->
-                <span class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4 text-white bg-light rounded"
-                      data-bs-dismiss="modal"
-                      aria-label="Close" role="button">
+                <span data-bs-dismiss="modal"
+                      class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
+                      role="button"
+                      style="cursor: pointer; z-index: 1056; background-color: rgba(255, 255, 255, 0.8); color: #000; border-radius: 4px;">
                     ×
                 </span>
 
-                <!-- Navigation Arrows -->
-                <span id="prevImageBtn" class="position-absolute start-0 top-50 translate-middle-y fs-3 text-dark bg-light px-2 rounded"
-                      role="button">⟨</span>
-                <span id="nextImageBtn" class="position-absolute end-0 top-50 translate-middle-y fs-3 text-dark bg-light px-2 rounded"
-                      role="button">⟩</span>
+                <!-- Navigation Buttons -->
+                <span class="btn btn-light position-absolute start-0 top-50 translate-middle-y" id="prevImageBtn" role="button">⟨</span>
+                <span class="btn btn-light position-absolute end-0 top-50 translate-middle-y" id="nextImageBtn" role="button">⟩</span>
 
                 <!-- Image -->
                 <img src="" id="modalImage" class="img-fluid rounded" />
