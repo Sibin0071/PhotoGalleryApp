@@ -21,8 +21,7 @@
                 <div class="card shadow-sm">
                     <a href="#" data-bs-toggle="modal" data-bs-target="#videoModal"
                        data-index="@i"
-                       data-video-url="@fileUrl"
-                       data-file-name="@fileName">
+                       data-video-url="@fileUrl">
                         <video class="card-img-top img-thumbnail img-fluid" muted>
                             <source src="@fileUrl" type="video/@extension.TrimStart('.')">
                         </video>
@@ -72,11 +71,11 @@
             <div class="modal-body p-0 text-center position-relative">
 
                 <!-- ❌ Close Button -->
-                <button id="closeVideoModalBtn"
-                        type="button"
+                <button type="button"
                         class="btn btn-light position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
+                        data-bs-dismiss="modal"
                         aria-label="Close">
-                    &times;
+                    ×
                 </button>
 
                 <!-- 🎥 Video Content -->

@@ -34,23 +34,18 @@
     const videoModal = document.getElementById('videoModal');
     const modalVideo = document.getElementById('modalVideo');
     const modalVideoSource = document.getElementById('modalVideoSource');
-    const closeBtn = document.getElementById('closeVideoModalBtn');
     const prevVideoBtn = document.getElementById('prevVideoBtn');
     const nextVideoBtn = document.getElementById('nextVideoBtn');
     const videoThumbnails = Array.from(document.querySelectorAll('[data-video-url]'));
     let currentVideoIndex = 0;
 
     if (videoModal && modalVideo && modalVideoSource) {
-        const videoModalInstance = new bootstrap.Modal(videoModal);
-
         videoThumbnails.forEach((thumb, index) => {
-            thumb.addEventListener('click', function (e) {
-                e.preventDefault();
+            thumb.addEventListener('click', function () {
                 const videoUrl = this.getAttribute('data-video-url');
                 modalVideoSource.src = videoUrl;
                 modalVideo.load();
                 currentVideoIndex = index;
-                videoModalInstance.show();
             });
         });
 
@@ -76,15 +71,10 @@
             });
         }
 
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                videoModalInstance.hide();
-            });
-        }
-
         videoModal.addEventListener('hidden.bs.modal', function () {
             modalVideo.pause();
             modalVideo.currentTime = 0;
+            modalVideoSource.src = '';
         });
     }
 });
