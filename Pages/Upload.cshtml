@@ -61,7 +61,7 @@
 
                 // Upload via XHR
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', window.location.pathname + '?handler=AjaxUpload', true);
+                xhr.open('POST', '/api/upload', true); // ✅ updated to call the Minimal API
 
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
@@ -73,8 +73,14 @@
 
                 xhr.onload = () => {
                     if (xhr.status === 200) {
-                        progressBar.classList.add('bg-success');
-                        statusDiv.innerHTML = `<div class="alert alert-success mt-2">Upload successful!</div>`;
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            progressBar.classList.add('bg-success');
+                            statusDiv.innerHTML = `<div class="alert alert-success mt-2">${response.message}</div>`;
+                        } else {
+                            progressBar.classList.add('bg-danger');
+                            statusDiv.innerHTML = `<div class="alert alert-danger mt-2">${response.message}</div>`;
+                        }
                     } else {
                         progressBar.classList.add('bg-danger');
                         statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload failed with status ${xhr.status}.</div>`;
@@ -91,3 +97,4 @@
         });
     </script>
 }
+
