@@ -14,9 +14,11 @@ namespace PhotoGalleryApp.Pages
             _configuration = configuration;
         }
 
+        [IgnoreAntiforgeryToken]
         [DisableRequestSizeLimit]
-        [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSizeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 5368709120)] // 5 GB
         public async Task<IActionResult> OnPostAjaxUploadAsync(List<IFormFile> files)
+
         {
             if (files == null || files.Count == 0)
             {
