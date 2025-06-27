@@ -11,6 +11,7 @@
         <input type="file" id="fileInput" multiple class="form-control" />
     </div>
     <button type="submit" class="btn btn-primary">Upload</button>
+    <button type="button" id="resetBtn" class="btn btn-secondary ms-2">Reset</button>
 </form>
 
 <!-- Progress Bar -->
@@ -34,6 +35,7 @@
             const progressContainer = document.getElementById('uploadProgressContainer');
             const progressBar = document.getElementById('uploadProgressBar');
             const statusDiv = document.getElementById('uploadStatus');
+            const resetBtn = document.getElementById('resetBtn');
 
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -86,6 +88,15 @@
                         break;
                     }
                 }
+            });
+
+            resetBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+                progressBar.classList.remove('bg-success', 'bg-danger');
+                progressContainer.style.display = 'none';
+                statusDiv.innerHTML = '';
             });
 
             async function uploadFileWithProgress(file, sasUrl, progressBar) {
