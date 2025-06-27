@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.Features;
 using Azure.Storage.Blobs;
+using Azure.Storage.Sas;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +31,7 @@ app.UseRouting();
 app.UseAuthorization();
 app.MapRazorPages();
 
-// ✅ Minimal API endpoint for AJAX file upload
+// ✅ Minimal API for AJAX file upload (optional fallback)
 app.MapPost("/api/upload", async (HttpRequest request, IConfiguration config) =>
 {
     var maxFileSizeBytes = 5L * 1024 * 1024 * 1024; // 5 GB
@@ -63,6 +64,31 @@ app.MapPost("/api/upload", async (HttpRequest request, IConfiguration config) =>
     }
 
     return Results.Ok(new { success = true, message = "Upload successful!" });
+});
+
+// ✅ Minimal API to generate a SAS URL for direct upload to Azure Blob Storage
+app.MapGet("/api/generate-sas", (string fileName, IConfiguration config) =>
+{
+    var connectionString = config.GetConnectionString("AzureBlobStorage");
+    var containerName = "media";
+
+    var blobServiceClient = new BlobServiceClient(connectionString);
+    var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+    var blobClient = containerClient.GetBlobClient(fileName);
+
+    var sasBuilder = new BlobSasBuilder
+    {
+        BlobContainerName = containerName,
+        BlobName = fileName,
+        Resource = "b",
+        ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(15)
+    };
+
+    sasBuilder.SetPermissions(BlobSasPermissions.Write | BlobSasPermissions.Create);
+
+    var sasUri = blobClient.GenerateSasUri(sasBuilder);
+
+    return Results.Ok(new { url = sasUri.ToString() });
 });
 
 app.Run();

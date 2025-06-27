@@ -6,9 +6,9 @@
 
 <h2 class="mb-3">Upload Media</h2>
 
-<form id="uploadForm" enctype="multipart/form-data">
+<form id="uploadForm">
     <div class="mb-3">
-        <input type="file" id="fileInput" name="files" multiple class="form-control" />
+        <input type="file" id="fileInput" multiple class="form-control" />
     </div>
     <button type="submit" class="btn btn-primary">Upload</button>
 </form>
@@ -35,9 +35,7 @@
             const progressBar = document.getElementById('uploadProgressBar');
             const statusDiv = document.getElementById('uploadStatus');
 
-            if (!uploadForm || !fileInput || !progressContainer || !progressBar || !statusDiv) return;
-
-            uploadForm.addEventListener('submit', (e) => {
+            uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
                 const files = fileInput.files;
@@ -53,48 +51,64 @@
                 progressBar.textContent = '0%';
                 statusDiv.innerHTML = '';
 
-                // Prepare FormData
-                const formData = new FormData();
-                for (let file of files) {
-                    formData.append('files', file);
-                }
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
 
-                // Upload via XHR
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/api/upload', true); // ✅ updated to call the Minimal API
-
-                xhr.upload.onprogress = (e) => {
-                    if (e.lengthComputable) {
-                        const percent = Math.round((e.loaded / e.total) * 100);
-                        progressBar.style.width = percent + '%';
-                        progressBar.textContent = percent + '%';
-                    }
-                };
-
-                xhr.onload = () => {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.success) {
-                            progressBar.classList.add('bg-success');
-                            statusDiv.innerHTML = `<div class="alert alert-success mt-2">${response.message}</div>`;
-                        } else {
-                            progressBar.classList.add('bg-danger');
-                            statusDiv.innerHTML = `<div class="alert alert-danger mt-2">${response.message}</div>`;
+                    try {
+                        // Step 1: Get SAS upload URL
+                        const sasResponse = await fetch(`/api/generate-sas?filename=${encodeURIComponent(file.name)}`);
+                        const sasData = await sasResponse.json();
+                        if (!sasData.success) {
+                            throw new Error(sasData.message || 'Failed to get SAS URL.');
                         }
-                    } else {
+
+                        const sasUrl = sasData.url;
+
+                        // Step 2: Upload with fetch and track progress
+                        await uploadFileWithProgress(file, sasUrl, progressBar);
+
+                        if (i === files.length - 1) {
+                            progressBar.classList.add('bg-success');
+                            statusDiv.innerHTML = `<div class="alert alert-success mt-2">All files uploaded successfully!</div>`;
+                        }
+
+                    } catch (err) {
                         progressBar.classList.add('bg-danger');
-                        statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload failed with status ${xhr.status}.</div>`;
+                        statusDiv.innerHTML = `<div class="alert alert-danger mt-2">${err.message}</div>`;
+                        break;
                     }
-                };
-
-                xhr.onerror = () => {
-                    progressBar.classList.add('bg-danger');
-                    statusDiv.innerHTML = `<div class="alert alert-danger mt-2">Upload error occurred.</div>`;
-                };
-
-                xhr.send(formData);
+                }
             });
+
+            async function uploadFileWithProgress(file, sasUrl, progressBar) {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', sasUrl);
+
+                    xhr.upload.onprogress = function (e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = percent + '%';
+                            progressBar.textContent = percent + '%';
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        if (xhr.status === 201 || xhr.status === 200) {
+                            resolve();
+                        } else {
+                            reject(new Error(`Upload failed: ${xhr.status}`));
+                        }
+                    };
+
+                    xhr.onerror = () => {
+                        reject(new Error('Upload error occurred.'));
+                    };
+
+                    xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
+                    xhr.send(file);
+                });
+            }
         });
     </script>
 }
-
