@@ -70,7 +70,7 @@
                             throw new Error(sasData.message || 'Failed to get SAS URL.');
                         }
 
-                        const sasUrl = sasData.url;
+                        const sasUrl = sasData.sasUrl;
 
                         // Step 2: Upload with fetch and track progress
                         await uploadFileWithProgress(file, sasUrl, progressBar);
