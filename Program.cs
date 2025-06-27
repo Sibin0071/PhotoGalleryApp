@@ -4,16 +4,23 @@ using Azure.Storage.Sas;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ Increase form upload limit to 5 GB
+// ✅ Inject Azure connection string from environment variable if available
+var azureConn = Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION");
+if (!string.IsNullOrEmpty(azureConn))
+{
+    builder.Configuration["ConnectionStrings:AzureBlobStorage"] = azureConn;
+}
+
+// Increase form upload limit to 5 GB
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 5_368_709_120; // 5 GB
+    options.MultipartBodyLengthLimit = 5_368_709_120;
 });
 
-// ✅ Increase Kestrel request body limit too
+// Increase Kestrel request body limit
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = 5_368_709_120; // 5 GB
+    serverOptions.Limits.MaxRequestBodySize = 5_368_709_120;
 });
 
 builder.Services.AddRazorPages();
@@ -31,64 +38,36 @@ app.UseRouting();
 app.UseAuthorization();
 app.MapRazorPages();
 
-// ✅ Minimal API for AJAX file upload (optional fallback)
-app.MapPost("/api/upload", async (HttpRequest request, IConfiguration config) =>
+// Minimal API for direct blob upload via SAS URL
+app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration config) =>
 {
-    var maxFileSizeBytes = 5L * 1024 * 1024 * 1024; // 5 GB
-    var allowedTypes = new[] {
+    var form = await request.ReadFormAsync();
+    var fileName = form["fileName"].ToString();
+    var contentType = form["contentType"].ToString();
+
+    if (string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(contentType))
+        return Results.BadRequest(new { success = false, message = "Missing file name or content type." });
+
+    var allowedTypes = new[]
+    {
         "image/jpeg", "image/png", "image/gif", "image/webp",
         "video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm"
     };
 
-    var form = await request.ReadFormAsync();
-    var files = form.Files;
-
-    if (files.Count == 0)
-        return Results.BadRequest(new { success = false, message = "No file selected." });
+    if (!allowedTypes.Contains(contentType.ToLower()))
+        return Results.BadRequest(new { success = false, message = "Unsupported file type." });
 
     var connectionString = config.GetConnectionString("AzureBlobStorage");
     var containerClient = new BlobContainerClient(connectionString, "media");
     await containerClient.CreateIfNotExistsAsync();
-
-    foreach (var file in files)
-    {
-        if (file.Length > maxFileSizeBytes)
-            return Results.BadRequest(new { success = false, message = $"File '{file.FileName}' exceeds 5 GB limit." });
-
-        if (!allowedTypes.Contains(file.ContentType.ToLower()))
-            return Results.BadRequest(new { success = false, message = $"File '{file.FileName}' is not a supported format." });
-
-        var blobClient = containerClient.GetBlobClient(file.FileName);
-        using var stream = file.OpenReadStream();
-        await blobClient.UploadAsync(stream, overwrite: true);
-    }
-
-    return Results.Ok(new { success = true, message = "Upload successful!" });
-});
-
-// ✅ Minimal API to generate a SAS URL for direct upload to Azure Blob Storage
-app.MapGet("/api/generate-sas", (string fileName, IConfiguration config) =>
-{
-    var connectionString = config.GetConnectionString("AzureBlobStorage");
-    var containerName = "media";
-
-    var blobServiceClient = new BlobServiceClient(connectionString);
-    var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
     var blobClient = containerClient.GetBlobClient(fileName);
 
-    var sasBuilder = new BlobSasBuilder
-    {
-        BlobContainerName = containerName,
-        BlobName = fileName,
-        Resource = "b",
-        ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(15)
-    };
+    if (!blobClient.CanGenerateSasUri)
+        return Results.Json(new { success = false, message = "Cannot generate SAS URL. Ensure the connection string uses Account Key." }, statusCode: 500);
 
-    sasBuilder.SetPermissions(BlobSasPermissions.Write | BlobSasPermissions.Create);
+    var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Write, DateTimeOffset.UtcNow.AddMinutes(30));
 
-    var sasUri = blobClient.GenerateSasUri(sasBuilder);
-
-    return Results.Ok(new { url = sasUri.ToString() });
+    return Results.Ok(new { success = true, sasUrl = sasUri.ToString() });
 });
 
 app.Run();
