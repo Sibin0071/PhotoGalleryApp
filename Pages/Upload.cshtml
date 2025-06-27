@@ -56,7 +56,15 @@
 
                     try {
                         // Step 1: Get SAS upload URL
-                        const sasResponse = await fetch(`/api/generate-sas?filename=${encodeURIComponent(file.name)}`);
+                        const formData = new FormData();
+                        formData.append("fileName", file.name);
+                        formData.append("contentType", file.type);
+
+                        const sasResponse = await fetch("/api/generate-sas-url", {
+                            method: "POST",
+                            body: formData
+                        });
+
                         const sasData = await sasResponse.json();
                         if (!sasData.success) {
                             throw new Error(sasData.message || 'Failed to get SAS URL.');
