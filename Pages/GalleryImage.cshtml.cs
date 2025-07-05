@@ -65,15 +65,24 @@ namespace PhotoGalleryApp.Pages
             if (string.IsNullOrEmpty(fileName)) return BadRequest("Filename is missing.");
 
             var blobClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
-                             .GetBlobContainerClient("media")
-                             .GetBlobClient(fileName);
+                .GetBlobContainerClient("media")
+                .GetBlobClient(fileName);
 
-            var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddMinutes(30));
+            // Build a SAS token with Content-Disposition header for download
+            var sasBuilder = new Azure.Storage.Sas.BlobSasBuilder
+            {
+                BlobContainerName = blobClient.BlobContainerName,
+                BlobName = blobClient.Name,
+                Resource = "b",
+                ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30),
+                ContentDisposition = $"attachment; filename={fileName}"
+            };
 
-            // Force download behavior by setting content-disposition header via redirect workaround
-            var downloadUrl = sasUri.ToString() + "&rscd=attachment%3Bfilename%3D" + Uri.EscapeDataString(fileName);
+            sasBuilder.SetPermissions(Azure.Storage.Sas.BlobSasPermissions.Read);
 
-            return Redirect(downloadUrl);
+            var sasUri = blobClient.GenerateSasUri(sasBuilder);
+
+            return Redirect(sasUri.ToString());
         }
 
     }
