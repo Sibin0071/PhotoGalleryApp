@@ -67,8 +67,14 @@ namespace PhotoGalleryApp.Pages
             var blobClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
                              .GetBlobContainerClient("media")
                              .GetBlobClient(fileName);
+
             var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddMinutes(30));
-            return Redirect(sasUri.ToString());
+
+            // Force download behavior by setting content-disposition header via redirect workaround
+            var downloadUrl = sasUri.ToString() + "&rscd=attachment%3Bfilename%3D" + Uri.EscapeDataString(fileName);
+
+            return Redirect(downloadUrl);
         }
+
     }
 }
