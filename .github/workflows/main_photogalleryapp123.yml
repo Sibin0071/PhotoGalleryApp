@@ -55,9 +55,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_313840C94E5C4477B0D1E3455FCC5903 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8C1614CF66754BA0900378EA1C94CD4F }}
 
-      - name: Set environment variable for Azure Blob connection string
+      - name: Set environment variables for Blob and SQL connection strings
         run: |
           echo "AZURE_BLOB_CONNECTION=${{ secrets.AZURE_BLOB_CONNECTION }}" >> $env:GITHUB_ENV
+          echo "AZURE_SQL_CONNECTION=${{ secrets.AZURE_SQL_CONNECTION }}" >> $env:GITHUB_ENV
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
