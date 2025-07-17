@@ -127,6 +127,7 @@ app.MapPost("/api/save-media-record", async (
         return Results.Unauthorized();
 
     media.UserId = user.Id;
+    media.UploadedBy = user.Email;
     media.UploadedAt = DateTime.UtcNow;
 
     db.GalleryFiles.Add(media);
