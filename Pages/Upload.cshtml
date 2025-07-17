@@ -46,7 +46,6 @@
                     return;
                 }
 
-                // Reset UI
                 progressContainer.style.display = 'block';
                 progressBar.classList.remove('bg-danger', 'bg-success');
                 progressBar.style.width = '0%';
@@ -57,7 +56,7 @@
                     const file = files[i];
 
                     try {
-                        // Step 1: Get SAS upload URL
+                        // Step 1: Get SAS URL
                         const formData = new FormData();
                         formData.append("fileName", file.name);
                         formData.append("contentType", file.type);
@@ -68,14 +67,22 @@
                         });
 
                         const sasData = await sasResponse.json();
-                        if (!sasData.success) {
-                            throw new Error(sasData.message || 'Failed to get SAS URL.');
-                        }
+                        if (!sasData.success) throw new Error(sasData.message || 'Failed to get SAS URL.');
 
                         const sasUrl = sasData.sasUrl;
 
-                        // Step 2: Upload with fetch and track progress
+                        // Step 2: Upload to Azure Blob
                         await uploadFileWithProgress(file, sasUrl, progressBar);
+
+                        // Step 3: Save to DB
+                        await fetch("/api/save-media-record", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                fileName: file.name,
+                                contentType: file.type
+                            })
+                        });
 
                         if (i === files.length - 1) {
                             progressBar.classList.add('bg-success');
@@ -120,9 +127,7 @@
                         }
                     };
 
-                    xhr.onerror = () => {
-                        reject(new Error('Upload error occurred.'));
-                    };
+                    xhr.onerror = () => reject(new Error('Upload error occurred.'));
 
                     xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
                     xhr.send(file);

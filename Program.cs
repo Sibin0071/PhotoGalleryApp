@@ -1,27 +1,64 @@
-﻿using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using PhotoGalleryApp.Data;
+using PhotoGalleryApp.Models;
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ Inject Azure connection string from environment variable if available
-var azureConn = Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION");
-if (!string.IsNullOrEmpty(azureConn))
+// ✅ Environment-based configuration
+var azureBlobConn = Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION");
+if (!string.IsNullOrEmpty(azureBlobConn))
 {
-    builder.Configuration["ConnectionStrings:AzureBlobStorage"] = azureConn;
+    builder.Configuration["ConnectionStrings:AzureBlobStorage"] = azureBlobConn;
 }
 
-// ✅ Increase upload limits
+var sqlConn = Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTION");
+if (!string.IsNullOrEmpty(sqlConn))
+{
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = sqlConn;
+}
+
+// ✅ Database context
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure()
+    )
+);
+
+// ✅ Identity with Roles and UI (replaces AddDefaultIdentity)
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultUI()
+.AddDefaultTokenProviders();
+
+// ✅ Upload size limits
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 5_368_709_120; // 5 GB
+    options.MultipartBodyLengthLimit = 5_368_709_120;
 });
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.Limits.MaxRequestBodySize = 5_368_709_120;
 });
 
-builder.Services.AddRazorPages();
+// ✅ Razor Pages + route protection
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizeFolder("/"); // Protect all pages
+    options.Conventions.AllowAnonymousToPage("/Identity/Account/Login");
+    options.Conventions.AllowAnonymousToPage("/Identity/Account/Register");
+    options.Conventions.AllowAnonymousToPage("/Identity/Account/ForgotPassword");
+    options.Conventions.AllowAnonymousToPage("/Identity/Account/ResetPassword");
+});
+
+builder.Services.AddControllers(); // Identity UI support
 
 var app = builder.Build();
 
@@ -33,10 +70,14 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthorization();
-app.MapRazorPages();
 
-// ✅ Minimal API for direct blob upload via SAS URL
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapRazorPages();
+app.MapControllers();
+
+// ✅ API to generate SAS URL
 app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration config) =>
 {
     var form = await request.ReadFormAsync();
@@ -44,32 +85,20 @@ app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration 
     var contentType = form["contentType"].ToString();
 
     if (string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(contentType))
-    {
         return Results.BadRequest(new { success = false, message = "Missing file name or content type." });
-    }
 
     var normalizedContentType = contentType.ToLower().Trim();
-
     var allowedTypes = new[]
     {
         "image/jpeg", "image/png", "image/gif", "image/webp",
         "video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm",
-        "application/octet-stream", // common fallback
-        "video/3gpp"                // old Android/iOS fallback
+        "application/octet-stream", "video/3gpp"
     };
-
-    // Extra fallback: if extension is .mp4 and MIME is generic
     bool isLikelySafeMp4 = fileName.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
-                           && (normalizedContentType == "application/octet-stream" || normalizedContentType == "video/3gpp");
+        && (normalizedContentType == "application/octet-stream" || normalizedContentType == "video/3gpp");
 
     if (!allowedTypes.Contains(normalizedContentType) && !isLikelySafeMp4)
-    {
-        return Results.BadRequest(new
-        {
-            success = false,
-            message = $"Unsupported file type '{normalizedContentType}'."
-        });
-    }
+        return Results.BadRequest(new { success = false, message = $"Unsupported file type '{normalizedContentType}'." });
 
     var connectionString = config.GetConnectionString("AzureBlobStorage");
     var containerClient = new BlobContainerClient(connectionString, "media");
@@ -77,16 +106,57 @@ app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration 
     var blobClient = containerClient.GetBlobClient(fileName);
 
     if (!blobClient.CanGenerateSasUri)
-    {
-        return Results.Json(new
-        {
-            success = false,
-            message = "Cannot generate SAS URL. Ensure the connection string uses Account Key."
-        }, statusCode: 500);
-    }
+        return Results.Json(new { success = false, message = "Cannot generate SAS URL. Ensure the connection string uses Account Key." }, statusCode: 500);
 
     var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Write, DateTimeOffset.UtcNow.AddMinutes(30));
     return Results.Ok(new { success = true, sasUrl = sasUri.ToString() });
 });
+
+// ✅ API to save media record to DB
+app.MapPost("/api/save-media-record", async (
+    HttpContext context,
+    ApplicationDbContext db,
+    UserManager<IdentityUser> userManager) =>
+{
+    var media = await context.Request.ReadFromJsonAsync<GalleryFile>();
+    if (media == null || string.IsNullOrWhiteSpace(media.FileName))
+        return Results.BadRequest(new { success = false, message = "Invalid file data." });
+
+    var user = await userManager.GetUserAsync(context.User);
+    if (user == null)
+        return Results.Unauthorized();
+
+    media.UserId = user.Id;
+    media.UploadedAt = DateTime.UtcNow;
+
+    db.GalleryFiles.Add(media);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { success = true });
+});
+
+// ✅ DB Migration + Role Creation + Assign Admin Role
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+    string[] roles = ["Admin", "User"];
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+            await roleManager.CreateAsync(new IdentityRole(role));
+    }
+
+    var adminEmail = "sibincs33@gmail.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser != null && !await userManager.IsInRoleAsync(adminUser, "Admin"))
+    {
+        await userManager.AddToRoleAsync(adminUser, "Admin");
+    }
+}
 
 app.Run();
