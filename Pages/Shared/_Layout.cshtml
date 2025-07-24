@@ -2,6 +2,23 @@
 @inject SignInManager<IdentityUser> SignInManager
 @inject UserManager<IdentityUser> UserManager
 
+@{
+    var isAdmin = false;
+    string effectiveUserId = "";
+
+    if (SignInManager.IsSignedIn(User))
+    {
+        var user = await UserManager.GetUserAsync(User);
+        var roles = await UserManager.GetRolesAsync(user);
+        isAdmin = roles.Contains("Admin");
+
+        if (ViewData.Model is PhotoGalleryApp.Pages.IndexModel indexModel)
+        {
+            effectiveUserId = indexModel.EffectiveUserId;
+        }
+    }
+}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,34 +33,50 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">GalleryApp</a>
+                <!-- ✅ Conditional Home Redirect -->
+                <a class="navbar-brand" asp-page="/Index" asp-route-UserId="@effectiveUserId">GalleryApp</a>
+
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
                         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         @if (SignInManager.IsSignedIn(User))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Upload">Upload</a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-dark" href="#" id="galleryDropdown" role="button"
-                                   data-bs-toggle="dropdown" aria-expanded="false">
-                                    Gallery
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="galleryDropdown">
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/GalleryImage">Image Gallery</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/GalleryVideo">Video Gallery</a></li>
-                                </ul>
-                            </li>
+                            @if (isAdmin)
+                            {
+                                <!-- Admin Menu -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-page="/Admin/UserList">User List</a>
+                                </li>
+                                <!-- You can add more admin links here -->
+                            }
+                            else
+                            {
+                                <!-- Normal User Menu -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-page="/Upload">Upload</a>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="galleryDropdown" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false">
+                                        Gallery
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="galleryDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-page="/GalleryImage">Image Gallery</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-page="/GalleryVideo">Video Gallery</a></li>
+                                    </ul>
+                                </li>
+                            }
                         }
                     </ul>
 
+                    <!-- Login/Logout Section -->
                     <ul class="navbar-nav">
                         @if (SignInManager.IsSignedIn(User))
                         {
@@ -71,6 +104,7 @@
         </nav>
     </header>
 
+    <!-- Main body content -->
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()

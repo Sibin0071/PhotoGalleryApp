@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
@@ -22,7 +22,11 @@ namespace PhotoGalleryApp.Pages
         [BindProperty(SupportsGet = true)]
         public int PageNumber { get; set; } = 1;
 
+        [BindProperty(SupportsGet = true)]
+        public string? UserId { get; set; } // ✅ new: optional userId passed by admin
+
         public int TotalPages { get; set; }
+        public string EffectiveUserId { get; set; } = "";
 
         public GalleryImageModel(
             IConfiguration configuration,
@@ -38,21 +42,26 @@ namespace PhotoGalleryApp.Pages
 
         public async Task OnGetAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            // Step 1: Load from DB (filtered by user role)
+            // ✅ Step 1: Determine effective userId (admin override)
+            var effectiveUserId = UserId ?? currentUser.Id;
+            EffectiveUserId = effectiveUserId;
+
+            // Step 2: Load from DB (filtered)
             var allMedia = await _db.GalleryFiles
-                .Where(f => isAdmin || f.UserId == user.Id)
+                .Where(f => isAdmin || f.UserId == currentUser.Id)
+                .Where(f => f.UserId == effectiveUserId) // ✅ enforce exact user match if userId is passed
                 .ToListAsync();
 
-            // Step 2: Filter image files in memory
+            // Step 3: Filter image files
             var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
             var imageMedia = allMedia
                 .Where(f => validExtensions.Contains(Path.GetExtension(f.FileName).ToLower()))
                 .ToList();
 
-            // Step 3: Build blob SAS URLs
+            // Step 4: Build blob SAS URLs
             var containerClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
                                     .GetBlobContainerClient("media");
 
@@ -65,8 +74,8 @@ namespace PhotoGalleryApp.Pages
                 allImageFiles.Add((sasUri.ToString(), media.FileName));
             }
 
-            // Step 4: Add orphan (non-DB) images for Admin
-            if (isAdmin)
+            // Step 5: Add orphan images (admin only, no userId filter)
+            if (isAdmin && string.IsNullOrEmpty(UserId))
             {
                 var knownFileNames = imageMedia.Select(m => m.FileName).ToHashSet();
 
@@ -82,13 +91,13 @@ namespace PhotoGalleryApp.Pages
                 }
             }
 
-            // Step 5: Pagination
+            // Step 6: Pagination
             int pageSize = 10;
             TotalPages = (int)Math.Ceiling(allImageFiles.Count / (double)pageSize);
             PageNumber = Math.Max(1, Math.Min(PageNumber, TotalPages));
 
             ImageFiles = allImageFiles
-                .OrderByDescending(f => f.FileName) // Optional: change sort
+                .OrderByDescending(f => f.FileName)
                 .Skip((PageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -112,7 +121,7 @@ namespace PhotoGalleryApp.Pages
                 await _db.SaveChangesAsync();
             }
 
-            return RedirectToPage(new { PageNumber });
+            return RedirectToPage(new { PageNumber, UserId }); // ✅ Preserve userId when redirecting
         }
 
         public IActionResult OnPostDownload(string fileName)

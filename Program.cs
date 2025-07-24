@@ -77,7 +77,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 
-// ✅ API to generate SAS URL
+// ✅ API to generate SAS URL with unique file name
 app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration config) =>
 {
     var form = await request.ReadFormAsync();
@@ -100,19 +100,24 @@ app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration 
     if (!allowedTypes.Contains(normalizedContentType) && !isLikelySafeMp4)
         return Results.BadRequest(new { success = false, message = $"Unsupported file type '{normalizedContentType}'." });
 
+    // ✅ Append Guid to filename to make it unique
+    var ext = Path.GetExtension(fileName);
+    var nameOnly = Path.GetFileNameWithoutExtension(fileName);
+    var uniqueFileName = $"{nameOnly}_{Guid.NewGuid():N}{ext}";
+
     var connectionString = config.GetConnectionString("AzureBlobStorage");
     var containerClient = new BlobContainerClient(connectionString, "media");
     await containerClient.CreateIfNotExistsAsync();
-    var blobClient = containerClient.GetBlobClient(fileName);
+    var blobClient = containerClient.GetBlobClient(uniqueFileName);
 
     if (!blobClient.CanGenerateSasUri)
         return Results.Json(new { success = false, message = "Cannot generate SAS URL. Ensure the connection string uses Account Key." }, statusCode: 500);
 
     var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Write, DateTimeOffset.UtcNow.AddMinutes(30));
-    return Results.Ok(new { success = true, sasUrl = sasUri.ToString() });
+    return Results.Ok(new { success = true, sasUrl = sasUri.ToString(), uniqueFileName });
 });
 
-// ✅ API to save media record to DB
+// ✅ FIXED: API to save media record to DB with impersonation support
 app.MapPost("/api/save-media-record", async (
     HttpContext context,
     ApplicationDbContext db,
@@ -122,12 +127,18 @@ app.MapPost("/api/save-media-record", async (
     if (media == null || string.IsNullOrWhiteSpace(media.FileName))
         return Results.BadRequest(new { success = false, message = "Invalid file data." });
 
-    var user = await userManager.GetUserAsync(context.User);
-    if (user == null)
+    var currentUser = await userManager.GetUserAsync(context.User);
+    if (currentUser == null)
         return Results.Unauthorized();
 
-    media.UserId = user.Id;
-    media.UploadedBy = user.Email;
+    var isAdmin = await userManager.IsInRoleAsync(currentUser, "Admin");
+
+    // ✅ Respect UserId passed from frontend if admin impersonating
+    media.UserId = isAdmin && !string.IsNullOrWhiteSpace(media.UserId)
+        ? media.UserId
+        : currentUser.Id;
+
+    media.UploadedBy = currentUser.Email;
     media.UploadedAt = DateTime.UtcNow;
 
     db.GalleryFiles.Add(media);

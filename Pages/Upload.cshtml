@@ -3,8 +3,16 @@
 @{
     ViewData["Title"] = "Upload";
 }
+<!-- ✅ Back to Home Button -->
+<a asp-page="/Index" asp-route-UserId="@Model.UserId" class="btn btn-secondary">
+    Back to Home
+</a>
 
 <h2 class="mb-3">Upload Media</h2>
+
+
+<!-- ✅ Hidden input to preserve impersonated userId -->
+<input type="hidden" id="userId" value="@Model.UserId" />
 
 <form id="uploadForm">
     <div class="mb-3">
@@ -36,6 +44,7 @@
             const progressBar = document.getElementById('uploadProgressBar');
             const statusDiv = document.getElementById('uploadStatus');
             const resetBtn = document.getElementById('resetBtn');
+            const userId = document.getElementById('userId')?.value;
 
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -56,7 +65,7 @@
                     const file = files[i];
 
                     try {
-                        // Step 1: Get SAS URL
+                        // Step 1: Get SAS URL + unique file name
                         const formData = new FormData();
                         formData.append("fileName", file.name);
                         formData.append("contentType", file.type);
@@ -70,18 +79,24 @@
                         if (!sasData.success) throw new Error(sasData.message || 'Failed to get SAS URL.');
 
                         const sasUrl = sasData.sasUrl;
+                        const uniqueFileName = sasData.uniqueFileName;
 
                         // Step 2: Upload to Azure Blob
                         await uploadFileWithProgress(file, sasUrl, progressBar);
 
                         // Step 3: Save to DB
+                        const savePayload = {
+                            fileName: uniqueFileName,
+                            contentType: file.type
+                        };
+                        if (userId) {
+                            savePayload.userId = userId;
+                        }
+
                         await fetch("/api/save-media-record", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                fileName: file.name,
-                                contentType: file.type
-                            })
+                            body: JSON.stringify(savePayload)
                         });
 
                         if (i === files.length - 1) {

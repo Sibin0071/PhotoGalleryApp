@@ -1,0 +1,39 @@
+﻿@page
+@model UserListModel
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    ViewData["Title"] = "User List";
+}
+
+<h2>User List</h2>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>          
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model.Users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            var isAdmin = roles.Contains("Admin");
+
+            <tr class="@(isAdmin ? "table-warning" : "")">
+                <td>
+                    @user.Email
+                    @if (isAdmin)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">Admin</span>
+                    }
+                </td>              
+                <td>
+                    <a asp-page="/Index" asp-route-userId="@user.Id" class="btn btn-primary">View Gallery</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

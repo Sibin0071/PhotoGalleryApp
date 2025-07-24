@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
@@ -21,7 +21,12 @@ namespace PhotoGalleryApp.Pages
 
         [BindProperty(SupportsGet = true)]
         public int PageNumber { get; set; } = 1;
+
+        [BindProperty(SupportsGet = true)]
+        public string? UserId { get; set; } // ✅ Support for admin override
+
         public int TotalPages { get; set; }
+        public string EffectiveUserId { get; set; } = "";
 
         public GalleryVideoModel(
             IConfiguration configuration,
@@ -37,12 +42,17 @@ namespace PhotoGalleryApp.Pages
 
         public async Task OnGetAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            // Step 1: Load from DB based on role
+            // ✅ Effective user (admin can impersonate)
+            var effectiveUserId = UserId ?? currentUser.Id;
+            EffectiveUserId = effectiveUserId;
+
+            // Step 1: Load from DB
             var allMedia = await _db.GalleryFiles
-                .Where(f => isAdmin || f.UserId == user.Id)
+                .Where(f => isAdmin || f.UserId == currentUser.Id)
+                .Where(f => f.UserId == effectiveUserId) // ✅ restrict if viewing specific user
                 .ToListAsync();
 
             var videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
@@ -62,8 +72,8 @@ namespace PhotoGalleryApp.Pages
                 allVideoFiles.Add((sasUri.ToString(), media.FileName));
             }
 
-            // Step 2: Add orphan (non-DB) blobs for Admin
-            if (isAdmin)
+            // Step 2: Add orphan blobs (admin only, not filtered by userId)
+            if (isAdmin && string.IsNullOrEmpty(UserId))
             {
                 var knownFiles = videoMedia.Select(f => f.FileName).ToHashSet();
 
@@ -85,7 +95,7 @@ namespace PhotoGalleryApp.Pages
             PageNumber = Math.Max(1, Math.Min(PageNumber, TotalPages));
 
             VideoFiles = allVideoFiles
-                .OrderByDescending(f => f.FileName) // Optional: change sort
+                .OrderByDescending(f => f.FileName)
                 .Skip((PageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -114,7 +124,6 @@ namespace PhotoGalleryApp.Pages
             var blobClient = containerClient.GetBlobClient(fileName);
             await blobClient.DeleteIfExistsAsync();
 
-            // Also remove from DB if exists
             var fileRecord = await _db.GalleryFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
             if (fileRecord != null)
             {
@@ -122,7 +131,7 @@ namespace PhotoGalleryApp.Pages
                 await _db.SaveChangesAsync();
             }
 
-            return RedirectToPage(new { PageNumber });
+            return RedirectToPage(new { PageNumber, UserId }); // ✅ preserve user context
         }
     }
 }

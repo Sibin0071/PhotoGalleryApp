@@ -3,8 +3,10 @@
 @{
     ViewData["Title"] = "Video Gallery";
     string[] videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
+    var userId = Model.UserId;
 }
 
+<a class="btn btn-secondary" asp-page="/Index" asp-route-UserId="@Model.EffectiveUserId">Back to Home</a>
 <h2 class="mb-4">Video Gallery</h2>
 
 <div class="row">
@@ -29,10 +31,10 @@
                     <div class="card-body text-center p-2">
                         @if (User.IsInRole("Admin"))
                         {
-                            <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" class="d-inline">
+                            <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-primary me-1">Download</button>
                             </form>
-                            <form method="post" asp-page-handler="Delete" asp-route-filename="@fileName" class="d-inline"
+                            <form method="post" asp-page-handler="Delete" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline"
                                   onsubmit="return confirm('Are you sure you want to delete this video?');">
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
@@ -49,18 +51,18 @@
     <nav aria-label="Video gallery pagination">
         <ul class="pagination justify-content-center">
             <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber - 1)">Previous</a>
+                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
             </li>
 
             @for (int i = 1; i <= Model.TotalPages; i++)
             {
                 <li class="page-item @(i == Model.PageNumber ? "active" : "")">
-                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@i">@i</a>
+                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@i" asp-route-userId="@userId">@i</a>
                 </li>
             }
 
             <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber + 1)">Next</a>
+                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
             </li>
         </ul>
     </nav>

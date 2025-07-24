@@ -23,5 +23,6 @@ namespace PhotoGalleryApp.Models
 
         [Required] 
         public string UserId { get; set; } = string.Empty;
+        public string FileType { get; set; } = string.Empty;
     }
 }

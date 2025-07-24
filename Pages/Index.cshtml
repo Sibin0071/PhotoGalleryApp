@@ -8,16 +8,31 @@
     <h1 class="display-4">📸 Welcome to Photo & Video Gallery</h1>
     <p class="lead">Upload and view your favorite memories</p>
 
+    <p class="text-muted">
+        Viewing as: <strong>@Model.EffectiveUserEmail</strong>
+    </p>
+
     <div class="mt-4 d-inline-block">
-        <a class="btn btn-primary btn-lg me-3" href="/Upload">Upload Media</a>
+        <a class="btn btn-primary btn-lg me-3"
+           asp-page="/Upload"
+           asp-route-userId="@Model.EffectiveUserId">Upload Media</a>
 
         <div class="btn-group">
-            <button type="button" class="btn btn-outline-secondary btn-lg dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+            <button type="button" class="btn btn-outline-secondary btn-lg dropdown-toggle dropdown-toggle-split"
+                    data-bs-toggle="dropdown" aria-expanded="false">
                 View Gallery
             </button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="/GalleryImage">Image Gallery</a></li>
-                <li><a class="dropdown-item" href="/GalleryVideo">Video Gallery</a></li>
+                <li>
+                    <a class="dropdown-item"
+                       asp-page="/GalleryImage"
+                       asp-route-userId="@Model.EffectiveUserId">Image Gallery</a>
+                </li>
+                <li>
+                    <a class="dropdown-item"
+                       asp-page="/GalleryVideo"
+                       asp-route-userId="@Model.EffectiveUserId">Video Gallery</a>
+                </li>
             </ul>
         </div>
     </div>

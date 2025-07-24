@@ -3,8 +3,10 @@
 @{
     ViewData["Title"] = "Image Gallery";
     string[] imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+    var userId = Model.UserId; // Preserve userId for admin views
 }
 
+<a class="btn btn-secondary" asp-page="/Index" asp-route-UserId="@Model.EffectiveUserId">Back to Home</a>
 <h2 class="mb-4">Image Gallery</h2>
 
 <div class="row">
@@ -24,10 +26,10 @@
                     <div class="card-body text-center p-2">
                         @if (User.IsInRole("Admin"))
                         {
-                            <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" class="d-inline">
+                            <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-primary me-1">Download</button>
                             </form>
-                            <form method="post" asp-page-handler="Delete" asp-route-filename="@fileName" class="d-inline"
+                            <form method="post" asp-page-handler="Delete" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline"
                                   onsubmit="return confirm('Are you sure you want to delete this image?');">
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
@@ -44,16 +46,16 @@
     <nav aria-label="Image gallery pagination">
         <ul class="pagination justify-content-center">
             <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber - 1)">Previous</a>
+                <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
             </li>
             @for (int i = 1; i <= Model.TotalPages; i++)
             {
                 <li class="page-item @(i == Model.PageNumber ? "active" : "")">
-                    <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@i">@i</a>
+                    <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@i" asp-route-userId="@userId">@i</a>
                 </li>
             }
             <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber + 1)">Next</a>
+                <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
             </li>
         </ul>
     </nav>
