@@ -24,7 +24,11 @@
                     <a href="#" data-bs-toggle="modal" data-bs-target="#videoModal"
                        data-index="@i"
                        data-video-url="@fileUrl">
-                        <video class="card-img-top img-thumbnail img-fluid" muted>
+                        <video class="card-img-top img-thumbnail img-fluid"
+                               muted
+                               controls
+                               controlsList="nodownload"
+                               disablePictureInPicture>
                             <source src="@fileUrl" type="video/@extension.TrimStart('.')">
                         </video>
                     </a>
@@ -83,7 +87,12 @@
                 </span>
 
                 <!-- 🎥 Video Content -->
-                <video id="modalVideo" class="img-fluid rounded w-100" controls autoplay>
+                <video id="modalVideo"
+                       class="img-fluid rounded w-100"
+                       controls
+                       autoplay
+                       controlsList="nodownload"
+                       disablePictureInPicture>
                     <source src="" type="video/mp4" id="modalVideoSource">
                 </video>
 
