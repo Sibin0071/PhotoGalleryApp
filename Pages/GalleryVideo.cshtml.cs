@@ -95,10 +95,14 @@ namespace PhotoGalleryApp.Pages
             PageNumber = Math.Max(1, Math.Min(PageNumber, TotalPages));
 
             VideoFiles = allVideoFiles
-                .OrderByDescending(f => f.FileName)
-                .Skip((PageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+     .OrderByDescending(f =>
+         videoMedia.FirstOrDefault(m => m.FileName == f.FileName)?.UploadedAt
+         ?? DateTime.MinValue // For orphan files without DB entry
+     )
+     .Skip((PageNumber - 1) * pageSize)
+     .Take(pageSize)
+     .ToList();
+
         }
 
         public IActionResult OnPostDownload(string fileName)

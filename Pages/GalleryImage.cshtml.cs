@@ -97,10 +97,13 @@ namespace PhotoGalleryApp.Pages
             PageNumber = Math.Max(1, Math.Min(PageNumber, TotalPages));
 
             ImageFiles = allImageFiles
-                .OrderByDescending(f => f.FileName)
-                .Skip((PageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+    .OrderByDescending(f =>
+        imageMedia.FirstOrDefault(m => m.FileName == f.FileName)?.UploadedAt
+        ?? DateTime.MinValue // For orphan files with no DB record
+    )
+    .Skip((PageNumber - 1) * pageSize)
+    .Take(pageSize)
+    .ToList();
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(string fileName)
