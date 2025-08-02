@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "8wPtfETErfu6rP1FcVturAY4B9Y+ItnR7zw/euzrDnA=",
+  "Hash": "oYVxs7CUEAehNrv+O2iC9X8WgZX/PoCTwMA6eV9ZfEQ=",
   "Source": "PhotoGalleryApp",
   "BasePath": "_content/PhotoGalleryApp",
   "Mode": "Default",
@@ -2352,6 +2352,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\lib\\jquery-validation-unobtrusive\\LICENSE.txt"
+    },
+    {
+      "Identity": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\lib\\signalr\\signalr.min.js",
+      "SourceId": "PhotoGalleryApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\",
+      "BasePath": "_content/PhotoGalleryApp",
+      "RelativePath": "lib/signalr/signalr.min.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\lib\\signalr\\signalr.min.js"
     },
     {
       "Identity": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\uploads\\BMO FORMS.PNG",

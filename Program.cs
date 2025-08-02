@@ -5,6 +5,9 @@ using PhotoGalleryApp.Data;
 using PhotoGalleryApp.Models;
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
+using PhotoGalleryApp.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using PhotoGalleryApp.UserIdProviders; // ✅ Add this for EmailBasedUserIdProvider
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +32,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     )
 );
 
-// ✅ Identity with Roles and UI (replaces AddDefaultIdentity)
+// ✅ Identity with Roles and UI
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -51,14 +54,15 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 // ✅ Razor Pages + route protection
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AuthorizeFolder("/"); // Protect all pages
+    options.Conventions.AuthorizeFolder("/");
     options.Conventions.AllowAnonymousToPage("/Identity/Account/Login");
     options.Conventions.AllowAnonymousToPage("/Identity/Account/Register");
     options.Conventions.AllowAnonymousToPage("/Identity/Account/ForgotPassword");
     options.Conventions.AllowAnonymousToPage("/Identity/Account/ResetPassword");
 });
 
-builder.Services.AddControllers(); // Identity UI support
+builder.Services.AddControllers();
+builder.Services.AddSignalR(); // ✅ Add SignalR
 
 var app = builder.Build();
 
@@ -69,6 +73,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseAuthentication();
@@ -76,8 +81,9 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<ChatHub>("/chathub"); // ✅ SignalR Hub endpoint
 
-// ✅ API to generate SAS URL with unique file name
+// ✅ API: Generate SAS URL with unique file name
 app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration config) =>
 {
     var form = await request.ReadFormAsync();
@@ -94,13 +100,14 @@ app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration 
         "video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm",
         "application/octet-stream", "video/3gpp"
     };
+
     bool isLikelySafeMp4 = fileName.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
         && (normalizedContentType == "application/octet-stream" || normalizedContentType == "video/3gpp");
 
     if (!allowedTypes.Contains(normalizedContentType) && !isLikelySafeMp4)
         return Results.BadRequest(new { success = false, message = $"Unsupported file type '{normalizedContentType}'." });
 
-    // ✅ Append Guid to filename to make it unique
+    // ✅ Unique filename
     var ext = Path.GetExtension(fileName);
     var nameOnly = Path.GetFileNameWithoutExtension(fileName);
     var uniqueFileName = $"{nameOnly}_{Guid.NewGuid():N}{ext}";
@@ -117,7 +124,7 @@ app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration 
     return Results.Ok(new { success = true, sasUrl = sasUri.ToString(), uniqueFileName });
 });
 
-// ✅ FIXED: API to save media record to DB with impersonation support
+// ✅ API: Save media record to DB
 app.MapPost("/api/save-media-record", async (
     HttpContext context,
     ApplicationDbContext db,
@@ -133,7 +140,6 @@ app.MapPost("/api/save-media-record", async (
 
     var isAdmin = await userManager.IsInRoleAsync(currentUser, "Admin");
 
-    // ✅ Respect UserId passed from frontend if admin impersonating
     media.UserId = isAdmin && !string.IsNullOrWhiteSpace(media.UserId)
         ? media.UserId
         : currentUser.Id;
@@ -147,7 +153,7 @@ app.MapPost("/api/save-media-record", async (
     return Results.Ok(new { success = true });
 });
 
-// ✅ DB Migration + Role Creation + Assign Admin Role
+// ✅ DB Setup + Role + Admin assignment
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

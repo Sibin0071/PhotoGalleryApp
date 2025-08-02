@@ -249,6 +249,10 @@
       "PackagePath": "staticwebassets\\lib\\jquery\\dist\\jquery.min.map"
     },
     {
+      "Id": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\lib\\signalr\\signalr.min.js",
+      "PackagePath": "staticwebassets\\lib\\signalr\\signalr.min.js"
+    },
+    {
       "Id": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\uploads\\BMO FORMS.PNG",
       "PackagePath": "staticwebassets\\uploads\\BMO FORMS.PNG"
     },

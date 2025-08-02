@@ -12,5 +12,6 @@ namespace PhotoGalleryApp.Data
         }
 
         public DbSet<GalleryFile> GalleryFiles { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
     }
 }

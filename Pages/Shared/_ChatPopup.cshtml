@@ -1,0 +1,231 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+@inject PhotoGalleryApp.Data.ApplicationDbContext DbContext
+
+@{
+    var user = await UserManager.GetUserAsync(User);
+    var userEmail = user?.Email ?? "";
+    var isAdmin = false;
+    var adminEmail = "sibincs33@gmail.com";
+
+    if (user != null)
+    {
+        var roles = await UserManager.GetRolesAsync(user);
+        isAdmin = roles.Contains("Admin");
+    }
+
+    var users = DbContext.Users.ToList();
+    var userList = new List<string>();
+    foreach (var u in users)
+    {
+        var roles = await UserManager.GetRolesAsync(u);
+        if (!roles.Contains("Admin"))
+        {
+            userList.Add(u.Email);
+        }
+    }
+}
+
+<!-- Chat icon trigger -->
+<div id="chatPopupIcon" style="position: fixed; bottom: 20px; right: 20px; background-color: #007bff; color: white; padding: 10px 15px; border-radius: 50%; cursor: pointer; z-index: 1050;">
+    💬
+</div>
+
+<!-- Draggable chat container -->
+<div id="chatPopupContainer" class="card shadow" style="position: fixed; bottom: 100px; right: 20px; width: 320px; z-index: 1060; display: none;">
+    <div class="card-header d-flex justify-content-between align-items-center" id="chatHeader" style="cursor: move;">
+        <strong>Live Chat</strong>
+        <div>
+            <button id="minimizeChatPopup" class="btn btn-sm btn-link">🔕</button>
+            <button id="closeChatPopup" class="btn btn-sm btn-link">❌</button>
+        </div>
+    </div>
+    <div id="chatPopupBody" class="card-body p-2">
+        @if (isAdmin)
+        {
+            <select id="popupToEmail" class="form-control mb-2">
+                <option disabled selected>-- Select User --</option>
+                @foreach (var email in userList)
+                {
+                    <option value="@email">@email</option>
+                }
+            </select>
+        }
+        else
+        {
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <input class="form-control" value="Admin" disabled />
+                <span id="adminStatus" class="text-success small ms-2"></span>
+            </div>
+            <input type="hidden" id="popupToEmail" value="@adminEmail" />
+        }
+
+        <input type="text" id="popupMessageInput" class="form-control mb-2" placeholder="Type message..." />
+        <button id="popupSendButton" class="btn btn-primary w-100">Send</button>
+        <div id="popupTypingStatus" class="text-muted small mt-1"></div>
+
+        <!-- Scrollable message list -->
+        <ul id="popupMessagesList" class="list-group mt-2" style="max-height: 200px; overflow-y: auto;"></ul>
+    </div>
+</div>
+
+<script src="~/lib/signalr/signalr.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const connection = new signalR.HubConnectionBuilder().withUrl("/chathub").build();
+        const popupUserEmail = "@userEmail";
+        const adminEmail = "sibincs33@gmail.com";
+        let typingTimeout;
+
+        async function loadMessageHistory(toEmail) {
+            const response = await fetch(`/chat/history?user1=${popupUserEmail}&user2=${toEmail}`);
+            const messages = await response.json();
+
+            const list = document.getElementById("popupMessagesList");
+            list.innerHTML = "";
+
+            messages.forEach(msg => {
+                const li = document.createElement("li");
+                const fromDisplay = (msg.fromUserEmail === adminEmail && popupUserEmail !== adminEmail) ? "Admin" : msg.fromUserEmail;
+                const toDisplay = (msg.toUserEmail === adminEmail && popupUserEmail !== adminEmail) ? "Admin" : msg.toUserEmail;
+                li.className = msg.fromUserEmail === popupUserEmail ? "list-group-item list-group-item-info" : "list-group-item";
+                li.textContent = msg.fromUserEmail === popupUserEmail
+                    ? `✅ To ${toDisplay}: ${msg.message}`
+                    : `📨 From ${fromDisplay}: ${msg.message}`;
+                list.appendChild(li);
+            });
+
+            scrollChatToBottom();
+        }
+
+        connection.on("ReceiveMessage", (from, message, to) => {
+            const list = document.getElementById("popupMessagesList");
+            const li = document.createElement("li");
+            const fromDisplay = (from === adminEmail && popupUserEmail !== adminEmail) ? "Admin" : from;
+            const toDisplay = (to === adminEmail && popupUserEmail !== adminEmail) ? "Admin" : to;
+
+            if (from === popupUserEmail) {
+                li.className = "list-group-item list-group-item-info";
+                li.textContent = `✅ To ${toDisplay}: ${message}`;
+            } else {
+                li.className = "list-group-item";
+                li.textContent = `📨 From ${fromDisplay}: ${message}`;
+            }
+
+            list.appendChild(li);
+            scrollChatToBottom();
+        });
+
+        connection.on("ShowTypingIndicator", (from) => {
+            const status = document.getElementById("popupTypingStatus");
+
+            const adminEmail = "sibincs33@gmail.com";
+            const fromDisplay = (from === adminEmail && popupUserEmail !== adminEmail) ? "Admin" : from;
+
+            status.textContent = `${fromDisplay} is typing...`;
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => status.textContent = "", 3000);
+        });
+
+        connection.on("UpdateOnlineUsers", (onlineUsers) => {
+            const toEmailSelect = document.getElementById("popupToEmail");
+
+            if (toEmailSelect && toEmailSelect.tagName === "SELECT") {
+                for (const option of toEmailSelect.options) {
+                    if (option.value && option.value !== "-- Select User --") {
+                        if (onlineUsers.includes(option.value.toLowerCase())) {
+                            option.textContent = `🟢 ${option.value}`;
+                        } else {
+                            option.textContent = `⚫ ${option.value}`;
+                        }
+                    }
+                }
+            }
+
+            const adminStatus = document.getElementById("adminStatus");
+            if (adminStatus) {
+                if (onlineUsers.includes(adminEmail.toLowerCase())) {
+                    adminStatus.textContent = "🟢 Online";
+                } else {
+                    adminStatus.textContent = "⚫ Offline";
+                }
+            }
+        });
+
+        connection.start().then(() => {
+            connection.invoke("RegisterUser", popupUserEmail);
+        });
+
+        document.getElementById("popupSendButton").addEventListener("click", async () => {
+            const toEmail = document.getElementById("popupToEmail").value;
+            const msg = document.getElementById("popupMessageInput").value.trim();
+
+            if (toEmail && msg) {
+                await connection.invoke("SendMessage", popupUserEmail, toEmail, msg);
+                document.getElementById("popupMessageInput").value = "";
+            }
+        });
+
+        document.getElementById("popupMessageInput").addEventListener("input", async () => {
+            const toEmail = document.getElementById("popupToEmail").value;
+            if (toEmail) await connection.invoke("Typing", popupUserEmail, toEmail);
+        });
+
+        document.getElementById("popupToEmail")?.addEventListener("change", () => {
+            const toEmail = document.getElementById("popupToEmail").value;
+            loadMessageHistory(toEmail);
+        });
+
+        document.getElementById("chatPopupIcon").addEventListener("click", () => {
+            document.getElementById("chatPopupContainer").style.display = "block";
+            const toEmail = document.getElementById("popupToEmail").value;
+            if (toEmail) loadMessageHistory(toEmail);
+        });
+
+        document.getElementById("closeChatPopup").addEventListener("click", () => {
+            document.getElementById("chatPopupContainer").style.display = "none";
+        });
+
+        document.getElementById("minimizeChatPopup").addEventListener("click", () => {
+            const body = document.getElementById("chatPopupBody");
+            const icon = document.getElementById("minimizeChatPopup");
+            body.classList.toggle("d-none");
+            icon.textContent = body.classList.contains("d-none") ? "🔖" : "🔕";
+        });
+
+        function scrollChatToBottom() {
+            const list = document.getElementById("popupMessagesList");
+            list.scrollTop = list.scrollHeight;
+        }
+
+        dragElement(document.getElementById("chatPopupContainer"), document.getElementById("chatHeader"));
+        function dragElement(elmnt, header) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            header.onmousedown = dragMouseDown;
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+                elmnt.style.bottom = "auto";
+                elmnt.style.right = "auto";
+            }
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+    });
+</script>
