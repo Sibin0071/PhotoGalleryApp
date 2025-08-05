@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "oYVxs7CUEAehNrv+O2iC9X8WgZX/PoCTwMA6eV9ZfEQ=",
+  "Hash": "37Vn9C92/1IIWWIZyUp2oMAF27A5Qktg4E/BEf7HQBI=",
   "Source": "PhotoGalleryApp",
   "BasePath": "_content/PhotoGalleryApp",
   "Mode": "Default",
@@ -1269,6 +1269,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\site.js"
+    },
+    {
+      "Identity": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\js\\videoCall.js",
+      "SourceId": "PhotoGalleryApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\",
+      "BasePath": "_content/PhotoGalleryApp",
+      "RelativePath": "js/videoCall.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\videoCall.js"
     },
     {
       "Identity": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.css",

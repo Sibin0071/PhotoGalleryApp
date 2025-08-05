@@ -28,7 +28,6 @@ namespace PhotoGalleryApp.Hubs
                 UserConnections[normalizedEmail] = Context.ConnectionId;
                 Console.WriteLine($"✅ Registered: {normalizedEmail} => {Context.ConnectionId}");
 
-                // ✅ FIX: Await the async method
                 await BroadcastOnlineUsers();
             }
         }
@@ -50,14 +49,14 @@ namespace PhotoGalleryApp.Hubs
             if (UserConnections.TryGetValue(receiverEmail.ToLowerInvariant(), out var receiverConnId))
             {
                 await Clients.Client(receiverConnId)
-                    .SendAsync("ReceiveMessage", senderEmail, message, receiverEmail); // FIXED: Added receiverEmail
+                    .SendAsync("ReceiveMessage", senderEmail, message, receiverEmail);
             }
 
             // Send to Sender
             if (UserConnections.TryGetValue(senderEmail.ToLowerInvariant(), out var senderConnId))
             {
                 await Clients.Client(senderConnId)
-                    .SendAsync("ReceiveMessage", senderEmail, message, receiverEmail); // FIXED: Added receiverEmail
+                    .SendAsync("ReceiveMessage", senderEmail, message, receiverEmail);
             }
         }
 
@@ -81,10 +80,59 @@ namespace PhotoGalleryApp.Hubs
 
             return base.OnDisconnectedAsync(exception);
         }
+
         private Task BroadcastOnlineUsers()
         {
             var onlineEmails = UserConnections.Keys.ToList();
             return Clients.All.SendAsync("UpdateOnlineUsers", onlineEmails);
+        }
+
+        // --- NEW METHODS FOR VIDEO CALL SIGNALING ---
+
+        public async Task SendOffer(string targetUser, string offer)
+        {
+            if (!string.IsNullOrWhiteSpace(targetUser) &&
+                UserConnections.TryGetValue(targetUser.ToLowerInvariant(), out var connectionId))
+            {
+                await Clients.Client(connectionId).SendAsync("ReceiveOffer", Context.User.Identity.Name, offer);
+            }
+        }
+
+        public async Task SendAnswer(string targetUser, string answer)
+        {
+            if (!string.IsNullOrWhiteSpace(targetUser) &&
+                UserConnections.TryGetValue(targetUser.ToLowerInvariant(), out var connectionId))
+            {
+                await Clients.Client(connectionId).SendAsync("ReceiveAnswer", Context.User.Identity.Name, answer);
+            }
+        }
+
+        public async Task SendIceCandidate(string targetUser, string candidate)
+        {
+            if (!string.IsNullOrWhiteSpace(targetUser) &&
+                UserConnections.TryGetValue(targetUser.ToLowerInvariant(), out var connectionId))
+            {
+                await Clients.Client(connectionId).SendAsync("ReceiveIceCandidate", Context.User.Identity.Name, candidate);
+            }
+        }
+
+        public async Task SendChatMessage(string targetUser, string message)
+        {
+            if (!string.IsNullOrWhiteSpace(targetUser) &&
+                UserConnections.TryGetValue(targetUser.ToLowerInvariant(), out var connectionId))
+            {
+                await Clients.Client(connectionId).SendAsync("ReceiveChatMessage", Context.User.Identity.Name, message);
+            }
+
+            var chatMsg = new ChatMessage
+            {
+                FromUserEmail = Context.User.Identity.Name,
+                ToUserEmail = targetUser,
+                Message = message,
+                Timestamp = DateTime.UtcNow
+            };
+            _db.ChatMessages.Add(chatMsg);
+            await _db.SaveChangesAsync();
         }
     }
 }

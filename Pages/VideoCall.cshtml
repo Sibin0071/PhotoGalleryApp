@@ -1,0 +1,65 @@
+﻿@page
+@model VideoCallModel
+@{
+    ViewData["Title"] = "Video Call";
+}
+
+<h2>Video Call with Chat</h2>
+
+<style>
+    .video-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .video-box {
+        flex: 1 1 300px;
+        max-width: 100%;
+        border: 1px solid gray;
+    }
+
+    #chatContainer {
+        max-width: 100%;
+        margin-top: 15px;
+        border: 1px solid #ccc;
+        padding: 10px;
+    }
+
+    #chatMessages {
+        height: 200px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        margin-bottom: 10px;
+        padding: 5px;
+    }
+
+    @@media (max-width: 600px) {
+        .video-container {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+</style>
+
+<div class="video-container">
+    <video id="localVideo" class="video-box" autoplay muted playsinline></video>
+    <video id="remoteVideo" class="video-box" autoplay playsinline></video>
+</div>
+
+<div style="margin-top: 10px;">
+    <button id="startCallBtn">Start Call</button>
+    <button id="endCallBtn">End Call</button>
+</div>
+
+<div id="chatContainer">
+    <div id="chatMessages"></div>
+    <input type="text" id="chatInput" placeholder="Type your message" style="width: 70%;" />
+    <button id="sendBtn">Send</button>
+</div>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/videoCall.js"></script>
+}

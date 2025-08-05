@@ -21,6 +21,10 @@
       "PackagePath": "staticwebassets\\js\\site.js"
     },
     {
+      "Id": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\js\\videoCall.js",
+      "PackagePath": "staticwebassets\\js\\videoCall.js"
+    },
+    {
       "Id": "C:\\Users\\50029577\\source\\repos\\PhotoGalleryApp\\PhotoGalleryApp\\wwwroot\\lib\\bootstrap\\LICENSE",
       "PackagePath": "staticwebassets\\lib\\bootstrap"
     },
