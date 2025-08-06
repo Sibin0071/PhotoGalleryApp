@@ -7,7 +7,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
 using PhotoGalleryApp.Hubs;
 using Microsoft.AspNetCore.SignalR;
-using PhotoGalleryApp.UserIdProviders; // ✅ Add this for EmailBasedUserIdProvider
+using PhotoGalleryApp.UserIdProviders; // ✅ Custom UserIdProvider
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,7 +62,10 @@ builder.Services.AddRazorPages(options =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddSignalR(); // ✅ Add SignalR
+
+// ✅ SignalR with custom user identity provider
+builder.Services.AddSignalR(); // or AddSignalR().AddAzureSignalR() if you're using Azure SignalR Service
+builder.Services.AddSingleton<IUserIdProvider, EmailBasedUserIdProvider>(); // ✅ <-- THIS LINE IS NEW
 
 var app = builder.Build();
 
@@ -81,7 +84,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
-app.MapHub<ChatHub>("/chathub"); // ✅ SignalR Hub endpoint
+app.MapHub<ChatHub>("/chathub");
 
 // ✅ API: Generate SAS URL with unique file name
 app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration config) =>
@@ -107,7 +110,6 @@ app.MapPost("/api/generate-sas-url", async (HttpRequest request, IConfiguration 
     if (!allowedTypes.Contains(normalizedContentType) && !isLikelySafeMp4)
         return Results.BadRequest(new { success = false, message = $"Unsupported file type '{normalizedContentType}'." });
 
-    // ✅ Unique filename
     var ext = Path.GetExtension(fileName);
     var nameOnly = Path.GetFileNameWithoutExtension(fileName);
     var uniqueFileName = $"{nameOnly}_{Guid.NewGuid():N}{ext}";

@@ -11,8 +11,16 @@ let peerConnection;
 let connection;
 let targetUser = ''; // Will hold the peer email/userId
 
+// ✅ Updated: STUN + TURN server (openrelay fallback)
 const config = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
+    ]
 };
 
 async function initSignalR() {
@@ -25,6 +33,7 @@ async function initSignalR() {
         targetUser = fromUser;
         await createPeerConnection();
         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(offer)));
+
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         await connection.invoke("SendAnswer", targetUser, JSON.stringify(answer));
@@ -52,7 +61,6 @@ async function initSignalR() {
     await connection.start();
     console.log("✅ SignalR connected");
 
-    // Register this user on server (ensure this matches Identity.Name)
     const currentUser = document.querySelector("body").innerText.match(/Hello,\s+(.+?)!/);
     if (currentUser && currentUser[1]) {
         await connection.invoke("RegisterUser", currentUser[1].trim());
@@ -69,9 +77,15 @@ async function startCall() {
 
     await createPeerConnection();
 
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-    localVideo.srcObject = localStream;
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        localVideo.srcObject = localStream;
+    } catch (err) {
+        console.error("🚫 Error accessing media devices:", err);
+        alert("Camera or microphone access was denied or not available.");
+        return;
+    }
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -107,7 +121,6 @@ function endCall() {
     localVideo.srcObject = null;
 }
 
-// Send chat message
 sendBtn.addEventListener('click', async () => {
     const message = chatInput.value.trim();
     if (!message || !targetUser) return;
@@ -122,5 +135,4 @@ sendBtn.addEventListener('click', async () => {
 startCallBtn.addEventListener('click', startCall);
 endCallBtn.addEventListener('click', endCall);
 
-// Start SignalR
 initSignalR();
