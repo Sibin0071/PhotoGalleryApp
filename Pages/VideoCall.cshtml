@@ -6,6 +6,7 @@
 
 <h2>Video Call with Chat</h2>
 
+@Html.Raw(@"
 <style>
     .video-container {
         display: flex;
@@ -35,13 +36,14 @@
         padding: 5px;
     }
 
-    @@media (max-width: 600px) {
+    @media (max-width: 600px) {
         .video-container {
             flex-direction: column;
             align-items: center;
         }
     }
 </style>
+")
 
 <div class="video-container">
     <video id="localVideo" class="video-box" autoplay muted playsinline></video>
@@ -60,6 +62,12 @@
 </div>
 
 @section Scripts {
+    <!-- ✅ Inject user identity from Razor into JS -->
+    <script>
+        const currentUserEmail = '@User.Identity?.Name';
+    </script>
+
+    <!-- ✅ Include SignalR and your video call script -->
     <script src="~/lib/signalr/signalr.min.js"></script>
     <script src="~/js/videoCall.js"></script>
 }
