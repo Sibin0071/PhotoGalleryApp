@@ -11,7 +11,6 @@ let peerConnection;
 let connection;
 let targetUser = ''; // Will hold the peer email/userId
 
-// ✅ Updated: STUN + TURN server (openrelay fallback)
 const config = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -68,6 +67,16 @@ async function initSignalR() {
     } else {
         console.warn("⚠️ Could not determine current user identity.");
     }
+
+    // ✅ Attach media stream immediately for both caller and receiver
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+        console.log("📷 Local stream initialized");
+    } catch (err) {
+        console.error("🚫 Error accessing media devices:", err);
+        alert("Camera or microphone access was denied or not available.");
+    }
 }
 
 async function startCall() {
@@ -77,14 +86,9 @@ async function startCall() {
 
     await createPeerConnection();
 
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    // Add local stream to peer connection
+    if (localStream) {
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-        localVideo.srcObject = localStream;
-    } catch (err) {
-        console.error("🚫 Error accessing media devices:", err);
-        alert("Camera or microphone access was denied or not available.");
-        return;
     }
 
     const offer = await peerConnection.createOffer();
@@ -106,6 +110,11 @@ async function createPeerConnection() {
         console.log("🎥 Remote stream received");
         remoteVideo.srcObject = event.streams[0];
     };
+
+    // Optional: log connection state
+    peerConnection.onconnectionstatechange = () => {
+        console.log("🔗 Connection state:", peerConnection.connectionState);
+    };
 }
 
 function endCall() {
@@ -119,6 +128,7 @@ function endCall() {
     }
     remoteVideo.srcObject = null;
     localVideo.srcObject = null;
+    console.log("📴 Call ended");
 }
 
 sendBtn.addEventListener('click', async () => {
