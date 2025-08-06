@@ -9,7 +9,8 @@ const chatMessages = document.getElementById('chatMessages');
 let localStream;
 let peerConnection;
 let connection;
-let targetUser = ''; // Will hold the peer email/userId
+let targetUser = '';
+const pendingCandidates = [];
 
 const config = {
     iceServers: [
@@ -46,8 +47,15 @@ async function initSignalR() {
 
     connection.on("ReceiveIceCandidate", async (fromUser, candidate) => {
         console.log("❄️ Received ICE candidate from:", fromUser);
-        if (candidate) {
-            await peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(candidate)));
+        const ice = new RTCIceCandidate(JSON.parse(candidate));
+        if (peerConnection) {
+            try {
+                await peerConnection.addIceCandidate(ice);
+            } catch (err) {
+                console.error("🔥 Error adding ICE candidate:", err);
+            }
+        } else {
+            pendingCandidates.push(ice);
         }
     });
 
@@ -67,16 +75,6 @@ async function initSignalR() {
     } else {
         console.warn("⚠️ Could not determine current user identity.");
     }
-
-    // ✅ Attach media stream immediately for both caller and receiver
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideo.srcObject = localStream;
-        console.log("📷 Local stream initialized");
-    } catch (err) {
-        console.error("🚫 Error accessing media devices:", err);
-        alert("Camera or microphone access was denied or not available.");
-    }
 }
 
 async function startCall() {
@@ -86,9 +84,15 @@ async function startCall() {
 
     await createPeerConnection();
 
-    // Add local stream to peer connection
-    if (localStream) {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        localVideo.srcObject = localStream;
+        console.log("🎥 Local stream initialized");
+    } catch (err) {
+        console.error("🚫 Error accessing media devices:", err);
+        alert("Camera or microphone access was denied or not available.");
+        return;
     }
 
     const offer = await peerConnection.createOffer();
@@ -111,10 +115,18 @@ async function createPeerConnection() {
         remoteVideo.srcObject = event.streams[0];
     };
 
-    // Optional: log connection state
-    peerConnection.onconnectionstatechange = () => {
-        console.log("🔗 Connection state:", peerConnection.connectionState);
+    peerConnection.oniceconnectionstatechange = () => {
+        console.log("🧊 ICE connection state:", peerConnection.iceConnectionState);
     };
+
+    for (const ice of pendingCandidates) {
+        try {
+            await peerConnection.addIceCandidate(ice);
+        } catch (err) {
+            console.error("🔥 Error applying buffered ICE:", err);
+        }
+    }
+    pendingCandidates.length = 0;
 }
 
 function endCall() {
@@ -128,7 +140,7 @@ function endCall() {
     }
     remoteVideo.srcObject = null;
     localVideo.srcObject = null;
-    console.log("📴 Call ended");
+    console.log("❌ Call ended");
 }
 
 sendBtn.addEventListener('click', async () => {
