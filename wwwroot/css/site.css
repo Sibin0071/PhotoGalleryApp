@@ -66,3 +66,18 @@ body {
     padding: 10px;
 }
 
+.pagination-wrapper {
+    margin-top: 10px;
+}
+
+    .pagination-wrapper .overflow-auto {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .pagination-wrapper .pagination {
+        flex-wrap: nowrap;
+    }
+
+
+

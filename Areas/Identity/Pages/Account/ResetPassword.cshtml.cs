@@ -55,7 +55,7 @@ namespace PhotoGalleryApp.Areas.Identity.Pages.Account
             var user = await _userManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
-                // Don't reveal user doesn't exist
+                // Don't reveal that the user does not exist
                 TempData["ResetMessage"] = "Password reset successful.";
                 return RedirectToPage("./Login");
             }

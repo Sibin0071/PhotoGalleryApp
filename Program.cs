@@ -7,7 +7,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
 using PhotoGalleryApp.Hubs;
 using Microsoft.AspNetCore.SignalR;
-using PhotoGalleryApp.UserIdProviders; // ✅ Custom UserIdProvider
+using PhotoGalleryApp.UserIdProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +32,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     )
 );
 
-// ✅ Identity with Roles and UI
+// ✅ Identity with Roles and UI (using IdentityUser now)
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -64,8 +64,8 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddControllers();
 
 // ✅ SignalR with custom user identity provider
-builder.Services.AddSignalR(); // or AddSignalR().AddAzureSignalR() if you're using Azure SignalR Service
-builder.Services.AddSingleton<IUserIdProvider, EmailBasedUserIdProvider>(); // ✅ <-- THIS LINE IS NEW
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, EmailBasedUserIdProvider>();
 
 var app = builder.Build();
 
@@ -136,7 +136,7 @@ app.MapPost("/api/save-media-record", async (
     if (media == null || string.IsNullOrWhiteSpace(media.FileName))
         return Results.BadRequest(new { success = false, message = "Invalid file data." });
 
-    var currentUser = await userManager.GetUserAsync(context.User);
+    IdentityUser? currentUser = await userManager.GetUserAsync(context.User);
     if (currentUser == null)
         return Results.Unauthorized();
 

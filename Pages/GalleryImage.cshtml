@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Image Gallery";
     string[] imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
-    var userId = Model.UserId; // Preserve userId for admin views
+    var userId = Model.UserId; // For admin impersonation
 }
 
 <a class="btn btn-secondary" asp-page="/Index" asp-route-UserId="@Model.EffectiveUserId">Back to Home</a>
@@ -18,12 +18,12 @@
 
         if (imageExtensions.Contains(extension))
         {
-            <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
-                <div class="card shadow-sm">
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4 d-flex">
+                <div class="card shadow-sm w-100 d-flex flex-column h-100">
                     <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="@fileUrl">
-                        <img src="@fileUrl" class="card-img-top img-thumbnail img-fluid" />
+                        <img src="@fileUrl" class="card-img-top img-fluid" style="object-fit: cover; height: 180px;" />
                     </a>
-                    <div class="card-body text-center p-2">
+                    <div class="card-body text-center p-2 mt-auto">
                         @if (User.IsInRole("Admin"))
                         {
                             <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline">
@@ -43,21 +43,38 @@
 
 @if (Model.TotalPages > 1)
 {
-    <nav aria-label="Image gallery pagination">
-        <ul class="pagination justify-content-center">
-            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
-            </li>
-            @for (int i = 1; i <= Model.TotalPages; i++)
-            {
-                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
-                    <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@i" asp-route-userId="@userId">@i</a>
+    // Pagination range calculation (NO @{} nested block)
+    int maxPageButtons = 20;
+    int startPage = Math.Max(1, Model.PageNumber - maxPageButtons / 2);
+    int endPage = Math.Min(Model.TotalPages, startPage + maxPageButtons - 1);
+
+    if (endPage - startPage < maxPageButtons && startPage > 1)
+    {
+        startPage = Math.Max(1, endPage - maxPageButtons + 1);
+    }
+
+    <nav aria-label="Image gallery pagination" class="pagination-wrapper">
+        <div class="overflow-auto">
+            <ul class="pagination justify-content-center flex-nowrap">
+                <!-- Previous Button -->
+                <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
                 </li>
-            }
-            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
-            </li>
-        </ul>
+
+                <!-- Page Numbers -->
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@i" asp-route-userId="@userId">@i</a>
+                    </li>
+                }
+
+                <!-- Next Button -->
+                <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="./GalleryImage" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
+                </li>
+            </ul>
+        </div>
     </nav>
 }
 
@@ -66,7 +83,6 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-dark">
             <div class="modal-body p-0 text-center position-relative">
-
                 <!-- Close Icon -->
                 <span data-bs-dismiss="modal"
                       class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"

@@ -23,7 +23,7 @@ namespace PhotoGalleryApp.Pages
         public int PageNumber { get; set; } = 1;
 
         [BindProperty(SupportsGet = true)]
-        public string? UserId { get; set; } // ✅ new: optional userId passed by admin
+        public string? UserId { get; set; }
 
         public int TotalPages { get; set; }
         public string EffectiveUserId { get; set; } = "";
@@ -43,25 +43,23 @@ namespace PhotoGalleryApp.Pages
         public async Task OnGetAsync()
         {
             var currentUser = await _userManager.GetUserAsync(User);
+            var allowedEmails = new[] { "kg@gmail.com", "liza@gmail.com" };
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            var isPrivilegedUser = isAdmin || allowedEmails.Contains(currentUser.Email);
 
-            // ✅ Step 1: Determine effective userId (admin override)
             var effectiveUserId = UserId ?? currentUser.Id;
             EffectiveUserId = effectiveUserId;
 
-            // Step 2: Load from DB (filtered)
             var allMedia = await _db.GalleryFiles
-                .Where(f => isAdmin || f.UserId == currentUser.Id)
-                .Where(f => f.UserId == effectiveUserId) // ✅ enforce exact user match if userId is passed
+                .Where(f => isPrivilegedUser || f.UserId == currentUser.Id)
+                .Where(f => f.UserId == effectiveUserId)
                 .ToListAsync();
 
-            // Step 3: Filter image files
             var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
             var imageMedia = allMedia
                 .Where(f => validExtensions.Contains(Path.GetExtension(f.FileName).ToLower()))
                 .ToList();
 
-            // Step 4: Build blob SAS URLs
             var containerClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
                                     .GetBlobContainerClient("media");
 
@@ -74,7 +72,6 @@ namespace PhotoGalleryApp.Pages
                 allImageFiles.Add((sasUri.ToString(), media.FileName));
             }
 
-            // Step 5: Add orphan images (admin only, no userId filter)
             if (isAdmin && string.IsNullOrEmpty(UserId))
             {
                 var knownFileNames = imageMedia.Select(m => m.FileName).ToHashSet();
@@ -91,45 +88,55 @@ namespace PhotoGalleryApp.Pages
                 }
             }
 
-            // Step 6: Pagination
             int pageSize = 10;
             TotalPages = (int)Math.Ceiling(allImageFiles.Count / (double)pageSize);
             PageNumber = Math.Max(1, Math.Min(PageNumber, TotalPages));
 
             ImageFiles = allImageFiles
-    .OrderByDescending(f =>
-        imageMedia.FirstOrDefault(m => m.FileName == f.FileName)?.UploadedAt
-        ?? DateTime.MinValue // For orphan files with no DB record
-    )
-    .Skip((PageNumber - 1) * pageSize)
-    .Take(pageSize)
-    .ToList();
+                .OrderByDescending(f =>
+                    imageMedia.FirstOrDefault(m => m.FileName == f.FileName)?.UploadedAt ?? DateTime.MinValue)
+                .Skip((PageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return BadRequest("Filename is missing.");
 
-            var containerClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
-                                  .GetBlobContainerClient("media");
-            var blobClient = containerClient.GetBlobClient(fileName);
+            var currentUser = await _userManager.GetUserAsync(User);
+            var allowedEmails = new[] { "kg@gmail.com", "liza@gmail.com" };
+            var isPrivilegedUser = await _userManager.IsInRoleAsync(currentUser, "Admin") || allowedEmails.Contains(currentUser.Email);
 
-            await blobClient.DeleteIfExistsAsync();
-
-            // Delete from database if exists
             var record = await _db.GalleryFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
             if (record != null)
             {
+                if (!isPrivilegedUser && record.UserId != currentUser.Id)
+                    return Forbid();
+
+                var containerClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
+                                      .GetBlobContainerClient("media");
+                var blobClient = containerClient.GetBlobClient(fileName);
+
+                await blobClient.DeleteIfExistsAsync();
                 _db.GalleryFiles.Remove(record);
                 await _db.SaveChangesAsync();
             }
 
-            return RedirectToPage(new { PageNumber, UserId }); // ✅ Preserve userId when redirecting
+            return RedirectToPage(new { PageNumber, UserId });
         }
 
-        public IActionResult OnPostDownload(string fileName)
+        public async Task<IActionResult> OnPostDownload(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return BadRequest("Filename is missing.");
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var allowedEmails = new[] { "kg@gmail.com", "liza@gmail.com" };
+            var isPrivilegedUser = await _userManager.IsInRoleAsync(currentUser, "Admin") || allowedEmails.Contains(currentUser.Email);
+
+            var record = await _db.GalleryFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
+            if (record != null && !isPrivilegedUser && record.UserId != currentUser.Id)
+                return Forbid();
 
             var blobClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
                 .GetBlobContainerClient("media")
@@ -145,7 +152,6 @@ namespace PhotoGalleryApp.Pages
             };
 
             sasBuilder.SetPermissions(Azure.Storage.Sas.BlobSasPermissions.Read);
-
             var sasUri = blobClient.GenerateSasUri(sasBuilder);
 
             return Redirect(sasUri.ToString());

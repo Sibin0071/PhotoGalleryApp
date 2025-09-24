@@ -19,20 +19,21 @@
 
         if (videoExtensions.Contains(extension))
         {
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-                <div class="card shadow-sm">
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex">
+                <div class="card shadow-sm w-100 d-flex flex-column h-100">
                     <a href="#" data-bs-toggle="modal" data-bs-target="#videoModal"
                        data-index="@i"
                        data-video-url="@fileUrl">
-                        <video class="card-img-top img-thumbnail img-fluid"
+                        <video class="card-img-top img-fluid"
                                muted
                                controls
                                controlsList="nodownload"
-                               disablePictureInPicture>
+                               disablePictureInPicture
+                               style="object-fit: cover; height: 180px;">
                             <source src="@fileUrl" type="video/@extension.TrimStart('.')">
                         </video>
                     </a>
-                    <div class="card-body text-center p-2">
+                    <div class="card-body text-center p-2 mt-auto">
                         @if (User.IsInRole("Admin"))
                         {
                             <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline">
@@ -52,23 +53,35 @@
 
 @if (Model.TotalPages > 1)
 {
-    <nav aria-label="Video gallery pagination">
-        <ul class="pagination justify-content-center">
-            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
-            </li>
+    // ✅ FIXED: C# code block inside if (no need for extra @{...})
+    int maxPageButtons = 20;
+    int startPage = Math.Max(1, Model.PageNumber - maxPageButtons / 2);
+    int endPage = Math.Min(Model.TotalPages, startPage + maxPageButtons - 1);
 
-            @for (int i = 1; i <= Model.TotalPages; i++)
-            {
-                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
-                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@i" asp-route-userId="@userId">@i</a>
+    if (endPage - startPage < maxPageButtons && startPage > 1)
+    {
+        startPage = Math.Max(1, endPage - maxPageButtons + 1);
+    }
+
+    <nav aria-label="Video gallery pagination" class="pagination-wrapper">
+        <div class="overflow-auto">
+            <ul class="pagination justify-content-center flex-nowrap">
+                <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
                 </li>
-            }
 
-            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
-                <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
-            </li>
-        </ul>
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@i" asp-route-userId="@userId">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
+                </li>
+            </ul>
+        </div>
     </nav>
 }
 

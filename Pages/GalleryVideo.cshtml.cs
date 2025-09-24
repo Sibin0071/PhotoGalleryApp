@@ -27,6 +27,8 @@ namespace PhotoGalleryApp.Pages
 
         public int TotalPages { get; set; }
         public string EffectiveUserId { get; set; } = "";
+        public string CurrentUserEmail { get; set; } = string.Empty;
+        public bool CanModifyFiles { get; set; } = false;
 
         public GalleryVideoModel(
             IConfiguration configuration,
@@ -45,14 +47,16 @@ namespace PhotoGalleryApp.Pages
             var currentUser = await _userManager.GetUserAsync(User);
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            // ✅ Effective user (admin can impersonate)
             var effectiveUserId = UserId ?? currentUser.Id;
             EffectiveUserId = effectiveUserId;
+            CurrentUserEmail = currentUser.Email ?? "";
+            CanModifyFiles = isAdmin ||
+                             (CurrentUserEmail == "kg@gmail.com" || CurrentUserEmail == "liza@gmail.com") &&
+                             currentUser.Id == effectiveUserId;
 
-            // Step 1: Load from DB
             var allMedia = await _db.GalleryFiles
                 .Where(f => isAdmin || f.UserId == currentUser.Id)
-                .Where(f => f.UserId == effectiveUserId) // ✅ restrict if viewing specific user
+                .Where(f => f.UserId == effectiveUserId)
                 .ToListAsync();
 
             var videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
@@ -72,7 +76,6 @@ namespace PhotoGalleryApp.Pages
                 allVideoFiles.Add((sasUri.ToString(), media.FileName));
             }
 
-            // Step 2: Add orphan blobs (admin only, not filtered by userId)
             if (isAdmin && string.IsNullOrEmpty(UserId))
             {
                 var knownFiles = videoMedia.Select(f => f.FileName).ToHashSet();
@@ -89,32 +92,38 @@ namespace PhotoGalleryApp.Pages
                 }
             }
 
-            // Step 3: Pagination
             int pageSize = 10;
             TotalPages = (int)Math.Ceiling(allVideoFiles.Count / (double)pageSize);
             PageNumber = Math.Max(1, Math.Min(PageNumber, TotalPages));
 
             VideoFiles = allVideoFiles
-     .OrderByDescending(f =>
-         videoMedia.FirstOrDefault(m => m.FileName == f.FileName)?.UploadedAt
-         ?? DateTime.MinValue // For orphan files without DB entry
-     )
-     .Skip((PageNumber - 1) * pageSize)
-     .Take(pageSize)
-     .ToList();
-
+                .OrderByDescending(f =>
+                    videoMedia.FirstOrDefault(m => m.FileName == f.FileName)?.UploadedAt
+                    ?? DateTime.MinValue)
+                .Skip((PageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
         }
 
-        public IActionResult OnPostDownload(string fileName)
+        public async Task<IActionResult> OnPostDownloadAsync(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return BadRequest("Filename is missing.");
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            var email = currentUser.Email ?? "";
+
+            var file = await _db.GalleryFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
+            if (file == null) return NotFound();
+
+            if (!(isAdmin || ((email == "kg@gmail.com" || email == "liza@gmail.com") && file.UserId == currentUser.Id)))
+                return Forbid();
 
             var blobClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
                 .GetBlobContainerClient("media")
                 .GetBlobClient(fileName);
 
             var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddMinutes(30));
-
             return Redirect(sasUri.ToString());
         }
 
@@ -122,20 +131,25 @@ namespace PhotoGalleryApp.Pages
         {
             if (string.IsNullOrEmpty(fileName)) return BadRequest("Filename is missing.");
 
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            var email = currentUser.Email ?? "";
+
+            var file = await _db.GalleryFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
+            if (file == null) return NotFound();
+
+            if (!(isAdmin || ((email == "kg@gmail.com" || email == "liza@gmail.com") && file.UserId == currentUser.Id)))
+                return Forbid();
+
             var containerClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobStorage"))
                 .GetBlobContainerClient("media");
-
             var blobClient = containerClient.GetBlobClient(fileName);
+
             await blobClient.DeleteIfExistsAsync();
+            _db.GalleryFiles.Remove(file);
+            await _db.SaveChangesAsync();
 
-            var fileRecord = await _db.GalleryFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
-            if (fileRecord != null)
-            {
-                _db.GalleryFiles.Remove(fileRecord);
-                await _db.SaveChangesAsync();
-            }
-
-            return RedirectToPage(new { PageNumber, UserId }); // ✅ preserve user context
+            return RedirectToPage(new { PageNumber, UserId });
         }
     }
 }
