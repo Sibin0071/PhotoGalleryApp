@@ -24,7 +24,16 @@
                         <img src="@fileUrl" class="card-img-top img-fluid" style="object-fit: cover; height: 180px;" />
                     </a>
                     <div class="card-body text-center p-2 mt-auto">
-                        @if (User.IsInRole("Admin"))
+                        @{
+                            var currentUserEmail = User.Identity?.Name?.ToLower();
+                            var isAdmin = User.IsInRole("Admin");
+                            var allowedEmails = new[] { "kg@gmail.com", "liza@gmail.com" };
+                            var isAllowedUser = allowedEmails.Contains(currentUserEmail);
+
+                            var canManage = isAdmin || (isAllowedUser && Model.EffectiveUserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+                        }
+
+                        @if (canManage)
                         {
                             <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-primary me-1">Download</button>
@@ -34,6 +43,7 @@
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
                         }
+
                     </div>
                 </div>
             </div>
