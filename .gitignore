@@ -1,0 +1,14 @@
+﻿# Visual Studio
+.vs/
+*.suo
+*.user
+applicationhost.config
+
+# Build output
+bin/
+obj/
+
+# Database / cache
+*.db
+*.db-shm
+*.db-wal

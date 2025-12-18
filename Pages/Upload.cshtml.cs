@@ -33,16 +33,6 @@ namespace PhotoGalleryApp.Pages
                 return Page();
 
             var fileName = Path.GetFileName(Upload.FileName);
-            var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
-
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var filePath = Path.Combine(uploadsFolder, fileName);
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await Upload.CopyToAsync(fileStream);
-            }
 
             var currentUser = await _userManager.GetUserAsync(User);
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
