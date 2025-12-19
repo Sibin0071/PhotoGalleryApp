@@ -2,11 +2,13 @@
 @model PhotoGalleryApp.Pages.GalleryVideoModel
 @{
     ViewData["Title"] = "Video Gallery";
-    string[] videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".3gp", ".avi", ".mkv" };
     var userId = Model.UserId;
 }
 
-<a class="btn btn-secondary" asp-page="/Index" asp-route-UserId="@Model.EffectiveUserId">Back to Home</a>
+<a class="btn btn-secondary mb-3" asp-page="/Index" asp-route-UserId="@Model.EffectiveUserId">
+    Back to Home
+</a>
+
 <h2 class="mb-4">Video Gallery</h2>
 
 <div class="row">
@@ -17,52 +19,69 @@
         var fileUrl = file.Url;
         var extension = System.IO.Path.GetExtension(fileName).ToLower();
 
-        if (videoExtensions.Contains(extension))
-        {
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex">
-                <div class="card shadow-sm w-100 d-flex flex-column h-100">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#videoModal"
-                       data-index="@i"
-                       data-video-url="@fileUrl">
-                        <video class="card-img-top img-fluid"
-                               muted
-                               controls
-                               controlsList="nodownload"
-                               disablePictureInPicture
-                               style="object-fit: cover; height: 180px;">
-                            <source src="@fileUrl" type="video/@extension.TrimStart('.')">
-                        </video>
-                    </a>
-                    <div class="card-body text-center p-2 mt-auto">
-                        @{
-                            var currentUserEmail = User.Identity?.Name?.ToLower();
-                            var isAdmin = User.IsInRole("Admin");
-                            var allowedEmails = new[] { "kg@gmail.com", "liza@gmail.com" };
-                            var isAllowedUser = allowedEmails.Contains(currentUserEmail);
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex">
+            <div class="card shadow-sm w-100 d-flex flex-column h-100">
 
-                            var canManage = isAdmin || (isAllowedUser && Model.EffectiveUserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
-                        }
+                <!-- 🎬 Video Thumbnail (NO controls) -->
+                <a href="#"
+                   data-bs-toggle="modal"
+                   data-bs-target="#videoModal"
+                   data-index="@i"
+                   data-video-url="@fileUrl">
+                    <video class="card-img-top img-fluid"
+                           muted
+                           preload="metadata"
+                           playsinline
+                           style="object-fit: cover; height: 180px;">
+                        <source src="@fileUrl" type="video/mp4" />
+                    </video>
+                </a>
 
-                        @if (canManage)
-                        {
-                            <form method="post" asp-page-handler="Download" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-primary me-1">Download</button>
-                            </form>
-                            <form method="post" asp-page-handler="Delete" asp-route-filename="@fileName" asp-route-userId="@userId" class="d-inline"
-                                  onsubmit="return confirm('Are you sure you want to delete this video?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                            </form>
-                        }
-                    </div>
+                <div class="card-body text-center p-2 mt-auto">
+                    @{
+                        var currentUserEmail = User.Identity?.Name?.ToLower();
+                        var isAdmin = User.IsInRole("Admin");
+                        var allowedEmails = new[] { "kg@gmail.com", "liza@gmail.com" };
+                        var isAllowedUser = allowedEmails.Contains(currentUserEmail);
+
+                        var canManage =
+                        isAdmin ||
+                        (isAllowedUser &&
+                        Model.EffectiveUserId ==
+                        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+                    }
+
+                    @if (canManage)
+                    {
+                        <form method="post"
+                              asp-page-handler="Download"
+                              asp-route-filename="@fileName"
+                              asp-route-userId="@userId"
+                              class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-primary me-1">
+                                Download
+                            </button>
+                        </form>
+
+                        <form method="post"
+                              asp-page-handler="Delete"
+                              asp-route-filename="@fileName"
+                              asp-route-userId="@userId"
+                              class="d-inline"
+                              onsubmit="return confirm('Are you sure you want to delete this video?');">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                Delete
+                            </button>
+                        </form>
+                    }
                 </div>
             </div>
-        }
+        </div>
     }
 </div>
 
 @if (Model.TotalPages > 1)
 {
-    // ✅ FIXED: C# code block inside if (no need for extra @{...})
     int maxPageButtons = 20;
     int startPage = Math.Max(1, Model.PageNumber - maxPageButtons / 2);
     int endPage = Math.Min(Model.TotalPages, startPage + maxPageButtons - 1);
@@ -75,57 +94,86 @@
     <nav aria-label="Video gallery pagination" class="pagination-wrapper">
         <div class="overflow-auto">
             <ul class="pagination justify-content-center flex-nowrap">
+
                 <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-userId="@userId">Previous</a>
+                    <a class="page-link"
+                       asp-page="./GalleryVideo"
+                       asp-route-pageNumber="@(Model.PageNumber - 1)"
+                       asp-route-userId="@userId">
+                        Previous
+                    </a>
                 </li>
 
                 @for (int i = startPage; i <= endPage; i++)
                 {
                     <li class="page-item @(i == Model.PageNumber ? "active" : "")">
-                        <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@i" asp-route-userId="@userId">@i</a>
+                        <a class="page-link"
+                           asp-page="./GalleryVideo"
+                           asp-route-pageNumber="@i"
+                           asp-route-userId="@userId">
+                            @i
+                        </a>
                     </li>
                 }
 
                 <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
-                    <a class="page-link" asp-page="./GalleryVideo" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-userId="@userId">Next</a>
+                    <a class="page-link"
+                       asp-page="./GalleryVideo"
+                       asp-route-pageNumber="@(Model.PageNumber + 1)"
+                       asp-route-userId="@userId">
+                        Next
+                    </a>
                 </li>
+
             </ul>
         </div>
     </nav>
 }
 
-<!-- Video Modal -->
-<div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
+<!-- 🎥 Video Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-dark text-white">
             <div class="modal-body p-0 text-center position-relative">
 
-                <!-- Close Icon -->
-                <span id="customCloseIcon"
-                      class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
+                <!-- ❌ Close -->
+                <span class="position-absolute top-0 end-0 m-2 px-2 py-1 fs-4"
                       role="button"
-                      style="cursor: pointer; z-index: 1056; background-color: rgba(255, 255, 255, 0.8); color: #000; border-radius: 4px;">
+                      data-bs-dismiss="modal"
+                      style="cursor:pointer; z-index:1056;
+                             background-color:rgba(255,255,255,.85);
+                             color:#000;border-radius:4px;">
                     ×
                 </span>
 
-                <!-- 🎥 Video Content -->
+                <!-- ▶️ Video -->
                 <video id="modalVideo"
                        class="img-fluid rounded w-100"
                        controls
                        autoplay
+                       preload="auto"
+                       playsinline
                        controlsList="nodownload"
                        disablePictureInPicture>
-                    <source src="" type="video/mp4" id="modalVideoSource">
+                    <source id="modalVideoSource" src="" type="video/mp4" />
                 </video>
 
-                <!-- ⬅ ➡ Navigation Buttons -->
-                <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y" id="prevVideoBtn">&#9664;</button>
-                <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y" id="nextVideoBtn">&#9654;</button>
+                <!-- ⬅ ➡ Navigation -->
+                <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y"
+                        id="prevVideoBtn">
+                    &#9664;
+                </button>
+
+                <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y"
+                        id="nextVideoBtn">
+                    &#9654;
+                </button>
+
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <!-- Script logic handled in site.js -->
+    <!-- Logic handled in site.js -->
 }
